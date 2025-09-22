@@ -1,6 +1,9 @@
 package com.example.authapp
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -11,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +28,12 @@ fun SellCropScreen(navController: NavController) {
     var cropLocation by remember { mutableStateOf("") }
     var cropDescription by remember { mutableStateOf("") }
     var deliveryDate by remember { mutableStateOf("") }
+
+    // Dropdown state
+    val cropCategories = listOf("Vegetable", "Fruit", "Grain", "Pulses", "Other")
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf("") }
+    var customCategory by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -44,7 +54,8 @@ fun SellCropScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()), // scrollable form
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -63,33 +74,66 @@ fun SellCropScreen(navController: NavController) {
                 singleLine = true
             )
 
-            // Crop Category
-            OutlinedTextField(
-                value = cropCategory,
-                onValueChange = { cropCategory = it },
-                label = { Text("Category (e.g. Vegetable, Grain, Fruit)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            // Category Dropdown
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = if (selectedCategory == "Other") customCategory else selectedCategory,
+                    onValueChange = { customCategory = it },
+                    readOnly = selectedCategory != "Other",
+                    label = { Text("Category") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) // ✅ dropdown arrow
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    singleLine = true
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    cropCategories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category) },
+                            onClick = {
+                                selectedCategory = category
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
-            // Crop Price
             OutlinedTextField(
                 value = cropPrice,
-                onValueChange = { cropPrice = it },
+                onValueChange = { input ->
+                    if (input.all { it.isDigit() }) { // ✅ allow only digits
+                        cropPrice = input
+                    }
+                },
                 label = { Text("Price per kg (₹)") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
             // Quantity
             OutlinedTextField(
                 value = cropQuantity,
-                onValueChange = { cropQuantity = it },
+                onValueChange = { input ->
+                    if (input.all { it.isDigit() }) { // ✅ allow only digits
+                        cropQuantity = input
+                    }
+                },
                 label = { Text("Quantity (kg)") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-
             // Location
             OutlinedTextField(
                 value = cropLocation,
@@ -124,7 +168,8 @@ fun SellCropScreen(navController: NavController) {
             // Submit Button
             Button(
                 onClick = {
-                    // Save crop logic here
+                    val finalCategory = if (selectedCategory == "Other") customCategory else selectedCategory
+                    println("Saving crop with category: $finalCategory")
                     navController.popBackStack()
                 },
                 modifier = Modifier
