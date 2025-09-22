@@ -17,11 +17,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.authapp.components.AutoSlidingBanner
 import kotlin.text.take
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,13 +64,14 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
         },
         floatingActionButtonPosition = FabPosition.Center
     ) { innerPadding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 12.dp)
         ) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 🔹 Search Bar
             OutlinedTextField(
@@ -82,7 +85,7 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                 shape = RoundedCornerShape(12.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 🔹 Categories
             val categories = listOf("Onion", "Tomato", "Wheat", "Rice", "Fruits", "Vegetables")
@@ -91,7 +94,7 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
-                                .size(60.dp)
+                                .size(50.dp)
                                 .background(Color(0xFFDCE775), CircleShape)
                                 .clickable { /* filter by category */ },
                             contentAlignment = Alignment.Center
@@ -104,34 +107,52 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(1.dp))
 
             // 🔹 Banner
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFA5D6A7), RoundedCornerShape(12.dp))
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "🌾 Sell crops directly to buyers & get better prices!",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+            val bannerColors = listOf(
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFF8D3084), Color(0xFFD08282), Color(0xFFD23069))
+                ),
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFF64B5F6), Color(0xFF2196F3), Color(0xFF0D47A1))
+                ),
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFFFFB74D), Color(0xFFFF9800), Color(0xFFF57C00))
+                ),
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFFE57373), Color(0xFFF44336), Color(0xFFB71C1C))
+                ),
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFF9575CD), Color(0xFF673AB7), Color(0xFF311B92))
                 )
-            }
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            val bannerMessages = listOf(
+                "🌾 Sell crops directly to buyers & get better prices!",
+                "🚜 Join thousands of farmers and increase your profit!",
+                "🥬 Fresh vegetables and grains available near you!",
+                "📦 List your crops easily and track your sales!",
+                "💰 Maximize your earnings with direct buyers!"
+            )
+
+            AutoSlidingBanner(
+                messages = bannerMessages,
+                colors = bannerColors,
+                slideDurationMs = 3000,
+                animationDurationMs = 1200
+            )
+
+            Spacer(modifier = Modifier.height(1.dp))
 
             // 🔹 Fresh Listings
             Text(
                 "Fresh Listings",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 4.dp)
             )
 
-            // 🔹 Two crops per row
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
