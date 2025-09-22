@@ -43,7 +43,6 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
     Scaffold(
         topBar = {
             TopNavBar(
-                title = "New Delhi, India",
                 cartCount = cartViewModel.cartItems.size,
                 onCartClick = { navController.navigate("cart") }
             )

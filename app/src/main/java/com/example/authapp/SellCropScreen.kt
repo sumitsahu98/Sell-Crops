@@ -1,5 +1,8 @@
 package com.example.authapp
 
+import LocationPermissionButton
+import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,7 +17,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.core.app.ActivityCompat
+//import com.example.authapp.utils.getCurrentLocation
+import com.example.authapp.utils.getDetailedLocation
+import java.util.jar.Manifest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,14 +142,24 @@ fun SellCropScreen(navController: NavController) {
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-            // Location
+
+            val context = LocalContext.current
+
+// Text field for manual input
             OutlinedTextField(
                 value = cropLocation,
                 onValueChange = { cropLocation = it },
-                label = { Text("Location / City") },
+                label = { Text("Location / Area") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+
+            // Button to get current location
+            LocationPermissionButton {
+                getDetailedLocation(context) { detailedAddress ->
+                    cropLocation = detailedAddress
+                }
+            }
 
             // Delivery Date
             OutlinedTextField(

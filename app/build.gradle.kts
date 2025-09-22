@@ -68,7 +68,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.0")
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
     implementation(libs.androidx.compose.foundation)
-
+    implementation("com.google.android.gms:play-services-location:21.2.0")
     // -------------------
     // Firebase BoM
     // -------------------
