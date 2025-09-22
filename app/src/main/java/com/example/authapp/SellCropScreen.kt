@@ -1,7 +1,6 @@
 package com.example.authapp
 
 import LocationPermissionButton
-import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,33 +11,44 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.core.app.ActivityCompat
-//import com.example.authapp.utils.getCurrentLocation
+import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.example.authapp.utils.getDetailedLocation
-import java.util.jar.Manifest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SellCropScreen(navController: NavController) {
 
-    // State variables for input fields
+    val context = LocalContext.current
+    val db = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
+    val userId = auth.currentUser?.uid
+    var isLoading by remember { mutableStateOf(false) }
+
+    // Form state
     var cropName by remember { mutableStateOf("") }
     var cropPrice by remember { mutableStateOf("") }
     var cropQuantity by remember { mutableStateOf("") }
-    var cropCategory by remember { mutableStateOf("") }
     var cropLocation by remember { mutableStateOf("") }
-    var cropDescription by remember { mutableStateOf("") }
     var deliveryDate by remember { mutableStateOf("") }
+    var cropDescription by remember { mutableStateOf("") }
 
-    // Dropdown state
-    val cropCategories = listOf("Vegetable", "Fruit", "Grain", "Pulses", "Other")
+    // Dropdown for category
+    // Map of categories and example text
+    val cropCategories = mapOf(
+        "Vegetable" to "e.g., Onion, Tomato, Potato, Spinach",
+        "Fruit" to "e.g., Mango, Banana, Apple, Orange",
+        "Grain" to "e.g., Rice, Wheat, Corn, Barley",
+        "Pulses" to "e.g., Lentils, Chickpeas, Beans, Peas",
+        "Other" to ""
+    )
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("") }
     var customCategory by remember { mutableStateOf("") }
@@ -52,35 +62,22 @@ fun SellCropScreen(navController: NavController) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF4CAF50) // Green for agriculture theme
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF4CAF50))
             )
         }
-    ) { innerPadding: PaddingValues ->
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState()), // scrollable form
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Enter Crop Details",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Text("Enter Crop Details", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
 
             // Crop Name
-            OutlinedTextField(
-                value = cropName,
-                onValueChange = { cropName = it },
-                label = { Text("Crop Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            OutlinedTextField(cropName, { cropName = it }, label = { Text("Crop Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
             // Category Dropdown
             ExposedDropdownMenuBox(
@@ -88,27 +85,28 @@ fun SellCropScreen(navController: NavController) {
                 onExpandedChange = { expanded = !expanded }
             ) {
                 OutlinedTextField(
-                    value = if (selectedCategory == "Other") customCategory else selectedCategory,
-                    onValueChange = { customCategory = it },
-                    readOnly = selectedCategory != "Other",
+                    value = selectedCategory,
+                    onValueChange = {},
+                    readOnly = true,
                     label = { Text("Category") },
                     trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) // ✅ dropdown arrow
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(),
                     singleLine = true
                 )
+
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    cropCategories.forEach { category ->
+                    cropCategories.forEach { (category, example) ->
                         DropdownMenuItem(
-                            text = { Text(category) },
+                            text = { Text("$category – $example") },
                             onClick = {
-                                selectedCategory = category
+                                selectedCategory = category   // ✅ only save the key in database
                                 expanded = false
                             }
                         )
@@ -116,13 +114,10 @@ fun SellCropScreen(navController: NavController) {
                 }
             }
 
+            // Price
             OutlinedTextField(
                 value = cropPrice,
-                onValueChange = { input ->
-                    if (input.all { it.isDigit() }) { // ✅ allow only digits
-                        cropPrice = input
-                    }
-                },
+                onValueChange = { input -> if (input.all { it.isDigit() }) cropPrice = input },
                 label = { Text("Price per kg (₹)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -132,29 +127,17 @@ fun SellCropScreen(navController: NavController) {
             // Quantity
             OutlinedTextField(
                 value = cropQuantity,
-                onValueChange = { input ->
-                    if (input.all { it.isDigit() }) { // ✅ allow only digits
-                        cropQuantity = input
-                    }
-                },
+                onValueChange = { input -> if (input.all { it.isDigit() }) cropQuantity = input },
                 label = { Text("Quantity (kg)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            val context = LocalContext.current
+            // Location
+            OutlinedTextField(cropLocation, { cropLocation = it }, label = { Text("Location / Area") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
-// Text field for manual input
-            OutlinedTextField(
-                value = cropLocation,
-                onValueChange = { cropLocation = it },
-                label = { Text("Location / Area") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Button to get current location
+            // Button to get detailed location
             LocationPermissionButton {
                 getDetailedLocation(context) { detailedAddress ->
                     cropLocation = detailedAddress
@@ -162,24 +145,10 @@ fun SellCropScreen(navController: NavController) {
             }
 
             // Delivery Date
-            OutlinedTextField(
-                value = deliveryDate,
-                onValueChange = { deliveryDate = it },
-                label = { Text("Expected Delivery Date") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            OutlinedTextField(deliveryDate, { deliveryDate = it }, label = { Text("Expected Delivery Date") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
             // Description
-            OutlinedTextField(
-                value = cropDescription,
-                onValueChange = { cropDescription = it },
-                label = { Text("Description (Optional)") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp),
-                maxLines = 4
-            )
+            OutlinedTextField(cropDescription, { cropDescription = it }, label = { Text("Description (Optional)") }, modifier = Modifier.fillMaxWidth().height(100.dp), maxLines = 4)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -187,19 +156,48 @@ fun SellCropScreen(navController: NavController) {
             Button(
                 onClick = {
                     val finalCategory = if (selectedCategory == "Other") customCategory else selectedCategory
-                    println("Saving crop with category: $finalCategory")
-                    navController.popBackStack()
+
+                    if (userId == null) {
+                        Toast.makeText(context, "Please login first", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (cropName.isBlank() || cropPrice.isBlank() || cropQuantity.isBlank()) {
+                        Toast.makeText(context, "Please fill required fields", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    isLoading = true
+
+                    val cropData = hashMapOf(
+                        "cropName" to cropName,
+                        "cropCategory" to finalCategory,
+                        "cropPrice" to cropPrice,
+                        "cropQuantity" to cropQuantity,
+                        "cropLocation" to cropLocation,
+                        "deliveryDate" to deliveryDate,
+                        "cropDescription" to cropDescription,
+                        "sellerId" to userId,
+                        "timestamp" to System.currentTimeMillis()
+                    )
+
+                    db.collection("crops")
+                        .add(cropData)
+                        .addOnSuccessListener {
+                            isLoading = false
+                            Toast.makeText(context, "Crop listed successfully", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                        .addOnFailureListener { e ->
+                            isLoading = false
+                            Toast.makeText(context, "Failed to list crop: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50), // same as topbar
-                    contentColor = Color.White
-                ),
-                shape = MaterialTheme.shapes.medium
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                shape = MaterialTheme.shapes.medium,
+                enabled = !isLoading
             ) {
-                Text("List Crop", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(if (isLoading) "Listing..." else "List Crop", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
