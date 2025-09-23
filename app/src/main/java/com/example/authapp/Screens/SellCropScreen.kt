@@ -1,4 +1,4 @@
-package com.example.authapp
+package com.example.authapp.Screens
 
 import LocationPermissionButton
 import android.widget.Toast
@@ -18,9 +18,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
+import com.example.authapp.components.DatePickerField
+import com.example.authapp.models.Crop
+import com.example.authapp.utils.getDetailedLocation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.example.authapp.utils.getDetailedLocation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +43,6 @@ fun SellCropScreen(navController: NavController) {
     var cropDescription by remember { mutableStateOf("") }
 
     // Dropdown for category
-    // Map of categories and example text
     val cropCategories = mapOf(
         "Vegetable" to "e.g., Onion, Tomato, Potato, Spinach",
         "Fruit" to "e.g., Mango, Banana, Apple, Orange",
@@ -74,10 +75,13 @@ fun SellCropScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Enter Crop Details", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Enter Crop Details",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.primary
+            )
 
-            // Crop Name
-            OutlinedTextField(cropName, { cropName = it }, label = { Text("Crop Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
             // Category Dropdown
             ExposedDropdownMenuBox(
@@ -106,12 +110,31 @@ fun SellCropScreen(navController: NavController) {
                         DropdownMenuItem(
                             text = { Text("$category – $example") },
                             onClick = {
-                                selectedCategory = category   // ✅ only save the key in database
+                                selectedCategory = category
                                 expanded = false
                             }
                         )
                     }
                 }
+            }
+            // Crop Name
+            OutlinedTextField(
+                value = cropName,
+                onValueChange = { cropName = it },
+                label = { Text("Crop Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // Custom category if "Other"
+            if (selectedCategory == "Other") {
+                OutlinedTextField(
+                    value = customCategory,
+                    onValueChange = { customCategory = it },
+                    label = { Text("Enter Custom Category") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
             }
 
             // Price
@@ -135,7 +158,13 @@ fun SellCropScreen(navController: NavController) {
             )
 
             // Location
-            OutlinedTextField(cropLocation, { cropLocation = it }, label = { Text("Location / Area") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(
+                value = cropLocation,
+                onValueChange = { cropLocation = it },
+                label = { Text("Location / Area") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
             // Button to get detailed location
             LocationPermissionButton {
@@ -145,10 +174,22 @@ fun SellCropScreen(navController: NavController) {
             }
 
             // Delivery Date
-            OutlinedTextField(deliveryDate, { deliveryDate = it }, label = { Text("Expected Delivery Date") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            DatePickerField(
+                label = "Expected Delivery Date",
+                selectedDate = deliveryDate,
+                onDateSelected = { deliveryDate = it }
+            )
 
             // Description
-            OutlinedTextField(cropDescription, { cropDescription = it }, label = { Text("Description (Optional)") }, modifier = Modifier.fillMaxWidth().height(100.dp), maxLines = 4)
+            OutlinedTextField(
+                value = cropDescription,
+                onValueChange = { cropDescription = it },
+                label = { Text("Description (Optional)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                maxLines = 4
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -168,20 +209,19 @@ fun SellCropScreen(navController: NavController) {
 
                     isLoading = true
 
-                    val cropData = hashMapOf(
-                        "cropName" to cropName,
-                        "cropCategory" to finalCategory,
-                        "cropPrice" to cropPrice,
-                        "cropQuantity" to cropQuantity,
-                        "cropLocation" to cropLocation,
-                        "deliveryDate" to deliveryDate,
-                        "cropDescription" to cropDescription,
-                        "sellerId" to userId,
-                        "timestamp" to System.currentTimeMillis()
+                    val crop = Crop(
+                        name = cropName,
+                        category = finalCategory,
+                        price = cropPrice,
+                        quantity = cropQuantity,
+                        location = cropLocation,
+                        deliveryDate = deliveryDate,
+                        description = cropDescription,
+                        sellerId = userId
                     )
 
                     db.collection("crops")
-                        .add(cropData)
+                        .add(crop)
                         .addOnSuccessListener {
                             isLoading = false
                             Toast.makeText(context, "Crop listed successfully", Toast.LENGTH_SHORT).show()
@@ -192,12 +232,21 @@ fun SellCropScreen(navController: NavController) {
                             Toast.makeText(context, "Failed to list crop: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50),
+                    contentColor = Color.White
+                ),
                 shape = MaterialTheme.shapes.medium,
                 enabled = !isLoading
             ) {
-                Text(if (isLoading) "Listing..." else "List Crop", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (isLoading) "Listing..." else "List Crop",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

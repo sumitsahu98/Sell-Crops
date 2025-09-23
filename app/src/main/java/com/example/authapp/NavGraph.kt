@@ -1,31 +1,28 @@
-//package com.example.authapp.navigation
-import com.example.authapp.*
+package com.example.authapp.navigation
 
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavHostController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.authapp.*
-//import com.example.sumitapp.AccountScreen
+import androidx.navigation.NavHostController
+import androidx.navigation.navArgument
+import com.example.authapp.Screens.*
+import com.example.authapp.models.CartViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
     val context = LocalContext.current
-    val cartViewModel: CartViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val cartViewModel: CartViewModel = viewModel()
 
-    val startDestination = if (auth.currentUser != null) {
-        "home"
-    } else {
-        "login"
-    }
+    val startDestination = if (auth.currentUser != null) "home" else "login"
 
     NavHost(navController = navController, startDestination = startDestination) {
 
-    // 🔹 Login Screen
+        // Login Screen
         composable("login") {
             LoginScreen(
                 auth = auth,
@@ -34,44 +31,55 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
                 onLoginSuccess = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
                 onSkip = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
         }
 
-        // 🔹 Signup Screen
+        // Signup Screen
         composable("signup") {
             SignupScreen(
                 auth = auth,
                 showMessage = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
                 onNavigateToHome = { navController.navigate("home") },
-
             )
         }
 
-        // 🔹 Home Screen
+        // Home Screen
         composable("home") {
             HomeScreen(navController = navController, cartViewModel = cartViewModel)
         }
 
-        // 🔹 Cart Screen
+        // Cart Screen
         composable("cart") {
             CartScreen(navController = navController, cartViewModel = cartViewModel)
         }
 
-        // 🔹 Other Screens
+        // Sell Crop Screen
         composable("create") { SellCropScreen(navController) }
-        composable("details") { ListingDetailsScreen(navController) }
+
+        // Listing Details Screen with serialized crop JSON
+        composable(
+            route = "details/{cropJson}",
+            arguments = listOf(navArgument("cropJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val cropJson = backStackEntry.arguments?.getString("cropJson")
+            ListingDetailsScreen(navController = navController, cropJson = cropJson)
+        }
+
+        // Chat, Account, Orders Screens
         composable("chat") { ChatScreen(navController) }
         composable("account") { AccountScreen(navController) }
         composable("orders") { OrdersScreen(navController) }
 
-        // 🔹 Edit Profile
+        // Edit Profile Screen
         composable("edit_profile") {
             EditProfileScreenModern(
                 auth = auth,
@@ -80,6 +88,4 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
             )
         }
     }
-
-
 }

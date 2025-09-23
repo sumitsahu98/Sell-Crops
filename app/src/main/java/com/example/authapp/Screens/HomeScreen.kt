@@ -1,4 +1,4 @@
-package com.example.authapp
+package com.example.authapp.Screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,22 +23,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.authapp.navbars.BottomNavBar
+//import com.example.authapp.TopNavBar
 import com.example.authapp.components.AutoSlidingBanner
-import kotlin.text.take
+import com.example.authapp.components.CropCard
+import com.example.authapp.models.CartViewModel
+import com.example.authapp.models.Crop
+import com.example.authapp.navbars.TopNavBar
+import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
 
     var searchText by remember { mutableStateOf("") }
+    var crops by remember { mutableStateOf(listOf<Crop>()) }
 
-    val crops = listOf(
-        Crop("Onion", "₹15/kg", "200kg"),
-        Crop("Tomato", "₹20/kg", "150kg"),
-        Crop("Wheat", "₹25/kg", "500kg"),
-        Crop("Rice", "₹30/kg", "300kg"),
-        Crop("Potato", "₹12/kg", "400kg")
-    )
+    // 🔹 Fetch crops from Firestore
+    LaunchedEffect(Unit) {
+        FirebaseFirestore.getInstance()
+            .collection("crops")
+            .addSnapshotListener { snapshot, e ->
+                if (snapshot != null) {
+                    crops = snapshot.documents.map { doc ->
+                        Crop(
+                            id = doc.id,
+                            name = doc.getString("name") ?: "",
+                            price = doc.getString("price") ?: "",
+                            quantity = doc.getString("quantity") ?: "",
+                            category = doc.getString("category") ?: "",
+                            description = doc.getString("description") ?: "",
+                            deliveryDate = doc.getString("deliveryDate") ?: "",
+                            location = doc.getString("location") ?: "",
+                            sellerId = doc.getString("sellerId") ?: "",
+                            timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+                        )
+                    }
+                }
+            }
+    }
+
 
     val filteredCrops = crops.filter { it.name.contains(searchText, ignoreCase = true) }
 
@@ -96,7 +120,9 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                             modifier = Modifier
                                 .size(50.dp)
                                 .background(Color(0xFFDCE775), CircleShape)
-                                .clickable { /* filter by category */ },
+                                .clickable {
+                                    searchText = category // filter by category
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(category.take(1), fontWeight = FontWeight.Bold)
@@ -107,25 +133,15 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 🔹 Banner
             val bannerColors = listOf(
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFF8D3084), Color(0xFFD08282), Color(0xFFD23069))
-                ),
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFF64B5F6), Color(0xFF2196F3), Color(0xFF0D47A1))
-                ),
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFFFFB74D), Color(0xFFFF9800), Color(0xFFF57C00))
-                ),
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFFE57373), Color(0xFFF44336), Color(0xFFB71C1C))
-                ),
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFF9575CD), Color(0xFF673AB7), Color(0xFF311B92))
-                )
+                Brush.linearGradient(colors = listOf(Color(0xFF8D3084), Color(0xFFD08282), Color(0xFFD23069))),
+                Brush.linearGradient(colors = listOf(Color(0xFF64B5F6), Color(0xFF2196F3), Color(0xFF0D47A1))),
+                Brush.linearGradient(colors = listOf(Color(0xFFFFB74D), Color(0xFFFF9800), Color(0xFFF57C00))),
+                Brush.linearGradient(colors = listOf(Color(0xFFE57373), Color(0xFFF44336), Color(0xFFB71C1C))),
+                Brush.linearGradient(colors = listOf(Color(0xFF9575CD), Color(0xFF673AB7), Color(0xFF311B92)))
             )
 
             val bannerMessages = listOf(
@@ -143,16 +159,9 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                 animationDurationMs = 1200
             )
 
-            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 🔹 Fresh Listings
-            Text(
-                "Fresh Listings",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -160,49 +169,10 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                 modifier = Modifier.fillMaxHeight()
             ) {
                 items(filteredCrops) { crop ->
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .clickable { navController.navigate("details") },
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Image
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .background(Color.LightGray, RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("Img")
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(crop.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text(crop.price, color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
-                            Text("Available: ${crop.quantity}", fontSize = 10.sp, color = Color.Gray)
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Button(
-                                onClick = { cartViewModel.addToCart(crop) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                                contentPadding = PaddingValues(vertical = 4.dp, horizontal = 8.dp)
-                            ) {
-                                Text("Add", color = Color.White, fontSize = 12.sp)
-                            }
-                        }
-                    }
+                    CropCard(crop = crop, cartViewModel = cartViewModel, navController = navController)
                 }
             }
+
         }
     }
 }
-
-// 🔹 Crop Data Model
-data class Crop(val name: String, val price: String, val quantity: String)

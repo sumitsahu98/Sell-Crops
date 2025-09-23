@@ -1,4 +1,4 @@
-package com.example.authapp
+package com.example.authapp.navbars
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.size

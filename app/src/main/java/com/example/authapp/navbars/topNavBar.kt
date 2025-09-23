@@ -1,4 +1,4 @@
-package com.example.authapp
+package com.example.authapp.navbars
 
 import android.Manifest
 import android.content.pm.PackageManager

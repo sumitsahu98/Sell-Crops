@@ -1,9 +1,7 @@
-package com.example.authapp
+package com.example.authapp.Screens
 
-import DateOfBirthField
-import android.app.DatePickerDialog
+//import DateOfBirthField
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,15 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.authapp.components.DatePickerField
 import com.example.authapp.ui.components.DefaultTopBar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,7 +203,13 @@ fun EditProfileScreenModern(
 
                 // Date of Birth Picker
 
-                OutlinedTextField(dob, onValueChange = { dob = it }, label = { Text("Date of Birth") }, modifier = Modifier.fillMaxWidth())
+                var dob by remember { mutableStateOf("") }
+
+                DatePickerField(
+                    label = "Date of Birth",
+                    selectedDate = dob,
+                    onDateSelected = { dob = it }
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
