@@ -1,6 +1,7 @@
 package com.example.authapp.navbars
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -31,12 +32,13 @@ fun BottomNavBar(navController: NavController, currentRoute: String) {
 
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 12.dp // stronger modern shadow
+        tonalElevation = 12.dp, // stronger modern shadow
+        modifier = Modifier.height(60.dp)
     ) {
         items.forEach { item ->
             val selected = currentRoute == item.route
             val scale by animateFloatAsState(
-                targetValue = if (selected) 1.3f else 1f,
+                targetValue = if (selected) 1.01f else 1f,
                 label = "iconScale"
             )
 
@@ -57,7 +59,7 @@ fun BottomNavBar(navController: NavController, currentRoute: String) {
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
-                        modifier = Modifier.size((24 * scale).dp),
+                        modifier = Modifier.size((20 * scale).dp),
                         tint = if (selected) MaterialTheme.colorScheme.primary else Color.Gray
                     )
                 },

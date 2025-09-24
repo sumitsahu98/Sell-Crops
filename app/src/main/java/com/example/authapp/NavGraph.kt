@@ -49,7 +49,9 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
                 auth = auth,
                 showMessage = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
                 onNavigateToHome = { navController.navigate("home") },
-            )
+                onNavigateToLogin = { navController.navigate("login") },
+
+                )
         }
 
         // Home Screen

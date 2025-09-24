@@ -24,6 +24,7 @@ fun SignupScreen(
     auth: FirebaseAuth,
     showMessage: (String) -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToLogin: () -> Unit,
 ) {
     var fullName by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -229,7 +230,7 @@ fun SignupScreen(
 
             Row {
                 Text("Already have an account? ", color = Color.Gray)
-                TextButton(onClick = onNavigateToHome) {
+                TextButton(onClick = onNavigateToLogin) {
                     Text("Login", color = Color(0xFF4A90E2), fontWeight = FontWeight.Bold)
                 }
             }

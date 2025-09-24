@@ -33,7 +33,7 @@ fun getDetailedLocation(context: Context, onLocationResult: (String) -> Unit) {
                     val state = addresses[0].adminArea ?: ""         // e.g., MP
 
                     val detailedAddress = if (subLocality.isNotEmpty())
-                        "$subLocality, $city ($state)"
+                        "$subLocality, $city"
                     else
                         "$city ($state)"
 
