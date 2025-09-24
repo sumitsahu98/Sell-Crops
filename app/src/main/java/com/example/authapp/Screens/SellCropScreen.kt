@@ -177,8 +177,10 @@ fun SellCropScreen(navController: NavController) {
             DatePickerField(
                 label = "Expected Delivery Date",
                 selectedDate = deliveryDate,
-                onDateSelected = { deliveryDate = it }
+                onDateSelected = { deliveryDate = it },
+                futureDatesOnly = true
             )
+
 
             // Description
             OutlinedTextField(

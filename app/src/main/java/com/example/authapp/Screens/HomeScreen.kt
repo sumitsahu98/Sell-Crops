@@ -31,14 +31,23 @@ import com.example.authapp.models.CartViewModel
 import com.example.authapp.models.Crop
 import com.example.authapp.navbars.TopNavBar
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.delay
+import similarity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
 
+    // 1️⃣ State variables
     var searchText by remember { mutableStateOf("") }
+    var debouncedSearchText by remember { mutableStateOf("") }
     var crops by remember { mutableStateOf(listOf<Crop>()) }
 
+    // 2️⃣ Debounce effect — triggers 1s after typing stops
+    LaunchedEffect(searchText) {
+        delay(500) // wait 1 second after typing stops
+        debouncedSearchText = searchText
+    }
     // 🔹 Fetch crops from Firestore
     LaunchedEffect(Unit) {
         FirebaseFirestore.getInstance()
@@ -64,7 +73,30 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
     }
 
 
-    val filteredCrops = crops.filter { it.name.contains(searchText, ignoreCase = true) }
+    // 4️⃣ Filter crops using debouncedSearchText
+    val filteredCrops = if (debouncedSearchText.isBlank()) {
+        crops
+    } else {
+        val query = debouncedSearchText.trim().lowercase()
+        val threshold = 0.6
+        crops.filter { crop ->
+            val locationWords = crop.location.trim().split(" ").map { it.lowercase() }
+
+            // Exact match or fuzzy match
+            crop.name.lowercase().contains(query) ||
+                    crop.category.lowercase().contains(query) ||
+                    locationWords.any { it.contains(query) } || // any word in location
+                    crop.name.similarity(query) >= threshold ||
+                    crop.category.similarity(query) >= threshold ||
+                    locationWords.any { it.similarity(query) >= threshold } ||
+                    crop.location.lowercase().contains(query) || // full location
+                    crop.location.similarity(query) >= threshold
+        }
+    }
+
+
+
+
 
     Scaffold(
         topBar = {

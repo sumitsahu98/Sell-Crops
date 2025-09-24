@@ -1,6 +1,8 @@
 package com.example.authapp.Screens
 
 //import DateOfBirthField
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,7 +21,10 @@ import com.example.authapp.ui.components.DefaultTopBar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreenModern(
@@ -203,13 +208,18 @@ fun EditProfileScreenModern(
 
                 // Date of Birth Picker
 
-                var dob by remember { mutableStateOf("") }
+//                var dob by remember { mutableStateOf("") }
+
+                val today = LocalDate.now()
+                val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
                 DatePickerField(
                     label = "Date of Birth",
                     selectedDate = dob,
-                    onDateSelected = { dob = it }
+                    onDateSelected = { dob = it },
+                    pastDatesOnly = true
                 )
+
 
                 Spacer(modifier = Modifier.height(8.dp))
 

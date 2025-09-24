@@ -15,7 +15,9 @@ import java.util.*
 fun DatePickerField(
     label: String,
     selectedDate: String,
-    onDateSelected: (String) -> Unit
+    onDateSelected: (String) -> Unit,
+    pastDatesOnly: Boolean = false,   // true = only allow past dates
+    futureDatesOnly: Boolean = false  // true = only allow future dates
 ) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
@@ -26,11 +28,20 @@ fun DatePickerField(
     val datePickerDialog = DatePickerDialog(
         context,
         { _: DatePicker, selectedYear: Int, selectedMonth: Int, selectedDay: Int ->
-            val formattedDate = "$selectedDay/${selectedMonth + 1}/$selectedYear"
-            onDateSelected(formattedDate)
+            try {
+                val formattedDate = "%02d/%02d/%04d".format(selectedDay, selectedMonth + 1, selectedYear)
+                onDateSelected(formattedDate)
+            } catch (e: Exception) {
+                // Optional: handle error
+            }
         },
         year, month, day
-    )
+    ).apply {
+        when {
+            pastDatesOnly -> datePicker.maxDate = calendar.timeInMillis  // only past dates
+            futureDatesOnly -> datePicker.minDate = calendar.timeInMillis // only future dates
+        }
+    }
 
     OutlinedTextField(
         value = selectedDate,
