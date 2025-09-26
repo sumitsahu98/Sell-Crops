@@ -1,37 +1,48 @@
 package com.example.authapp.Screens
 
 import LocationPermissionButton
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
-import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.authapp.components.DatePickerField
 import com.example.authapp.models.Crop
+import com.example.authapp.utils.CloudinaryUploader
 import com.example.authapp.utils.getDetailedLocation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SellCropScreen(navController: NavController) {
+fun SellCropScreen(navController: androidx.navigation.NavController) {
 
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     val userId = auth.currentUser?.uid
+    val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
 
     // Form state
@@ -41,6 +52,15 @@ fun SellCropScreen(navController: NavController) {
     var cropLocation by remember { mutableStateOf("") }
     var deliveryDate by remember { mutableStateOf("") }
     var cropDescription by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var uploadedImageUrl by remember { mutableStateOf("") }
+
+    // Image Picker
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) selectedImageUri = uri
+    }
 
     // Dropdown for category
     val cropCategories = mapOf(
@@ -75,6 +95,7 @@ fun SellCropScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
             Text(
                 "Enter Crop Details",
                 fontWeight = FontWeight.Bold,
@@ -82,6 +103,45 @@ fun SellCropScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.primary
             )
 
+            // Image Picker Box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                if (selectedImageUri != null) {
+                    // Show selected image
+                    AsyncImage(
+                        model = selectedImageUri,
+                        contentDescription = "Selected Crop Image",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { imagePickerLauncher.launch("image/*") } // tap to replace
+                    )
+                } else {
+                    // Show button text
+                    Text(
+                        "Tap to select crop image",
+                        color = Color.DarkGray,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { imagePickerLauncher.launch("image/*") }
+                    )
+                }
+            }
+
+            // Show "Remove Image" button if image is selected
+            if (selectedImageUri != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { selectedImageUri = null },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Remove Image", color = Color.Red)
+                }
+            }
 
             // Category Dropdown
             ExposedDropdownMenuBox(
@@ -117,6 +177,7 @@ fun SellCropScreen(navController: NavController) {
                     }
                 }
             }
+
             // Crop Name
             OutlinedTextField(
                 value = cropName,
@@ -126,7 +187,6 @@ fun SellCropScreen(navController: NavController) {
                 singleLine = true
             )
 
-            // Custom category if "Other"
             if (selectedCategory == "Other") {
                 OutlinedTextField(
                     value = customCategory,
@@ -181,7 +241,6 @@ fun SellCropScreen(navController: NavController) {
                 futureDatesOnly = true
             )
 
-
             // Description
             OutlinedTextField(
                 value = cropDescription,
@@ -198,41 +257,57 @@ fun SellCropScreen(navController: NavController) {
             // Submit Button
             Button(
                 onClick = {
-                    val finalCategory = if (selectedCategory == "Other") customCategory else selectedCategory
+                    val finalCategory =
+                        if (selectedCategory == "Other") customCategory else selectedCategory
 
                     if (userId == null) {
                         Toast.makeText(context, "Please login first", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     if (cropName.isBlank() || cropPrice.isBlank() || cropQuantity.isBlank()) {
-                        Toast.makeText(context, "Please fill required fields", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Please fill required fields", Toast.LENGTH_SHORT)
+                            .show()
                         return@Button
                     }
 
                     isLoading = true
 
-                    val crop = Crop(
-                        name = cropName,
-                        category = finalCategory,
-                        price = cropPrice,
-                        quantity = cropQuantity,
-                        location = cropLocation,
-                        deliveryDate = deliveryDate,
-                        description = cropDescription,
-                        sellerId = userId
-                    )
+                    scope.launch {
+                        // Upload image to Cloudinary if selected
+                        if (selectedImageUri != null) {
+                            val url = CloudinaryUploader.uploadImage(context, selectedImageUri!!)
+                            uploadedImageUrl = url ?: ""
+                        }
 
-                    db.collection("crops")
-                        .add(crop)
-                        .addOnSuccessListener {
-                            isLoading = false
-                            Toast.makeText(context, "Crop listed successfully", Toast.LENGTH_SHORT).show()
-                            navController.popBackStack()
-                        }
-                        .addOnFailureListener { e ->
-                            isLoading = false
-                            Toast.makeText(context, "Failed to list crop: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
+                        val crop = Crop(
+                            name = cropName,
+                            category = finalCategory,
+                            price = cropPrice,
+                            quantity = cropQuantity,
+                            location = cropLocation,
+                            deliveryDate = deliveryDate,
+                            description = cropDescription,
+                            imageUrl = uploadedImageUrl,
+                            sellerId = userId
+                        )
+
+                        db.collection("crops")
+                            .add(crop)
+                            .addOnSuccessListener {
+                                isLoading = false
+                                Toast.makeText(context, "Crop listed successfully", Toast.LENGTH_SHORT)
+                                    .show()
+                                navController.popBackStack()
+                            }
+                            .addOnFailureListener { e ->
+                                isLoading = false
+                                Toast.makeText(
+                                    context,
+                                    "Failed to list crop: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

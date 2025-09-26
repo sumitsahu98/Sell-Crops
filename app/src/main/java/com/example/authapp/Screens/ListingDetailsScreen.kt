@@ -10,12 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.authapp.models.Crop
 import com.google.gson.Gson
 
@@ -63,7 +65,7 @@ fun ListingDetailsScreen(navController: NavController, cropJson: String? = null)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Image placeholder
+            // Crop Image
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -71,13 +73,33 @@ fun ListingDetailsScreen(navController: NavController, cropJson: String? = null)
                     .background(Color.LightGray, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Crop Image", color = Color.DarkGray)
+                if (!crop.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = crop.imageUrl,
+                        contentDescription = crop.name.ifBlank { "Crop Image" },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                } else {
+                    Text("Crop Image", color = Color.DarkGray)
+                }
             }
 
             // Crop Details
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Price: ₹${crop.price} / kg", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF388E3C))
-                Text("Price for 10kg: ₹${priceFor10Kg.toInt()}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF388E3C))
+                Text(
+                    "Price: ₹${crop.price} / kg",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF388E3C)
+                )
+                Text(
+                    "Price for 10kg: ₹${priceFor10Kg.toInt()}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFF388E3C)
+                )
                 Text("Available Quantity: ${crop.quantity} kg", fontSize = 16.sp)
                 Text("Category: ${crop.category}", fontSize = 16.sp)
                 Text("Location: ${crop.location}", fontSize = 16.sp)

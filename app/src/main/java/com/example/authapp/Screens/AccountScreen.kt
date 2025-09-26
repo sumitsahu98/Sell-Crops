@@ -11,11 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.authapp.components.ProfileCard
 import com.example.authapp.navbars.BottomNavBar
 import com.example.authapp.ui.components.DefaultTopBar
 import com.google.firebase.auth.FirebaseAuth
@@ -29,12 +32,11 @@ fun AccountScreen(navController: NavController) {
 
     var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
     var fullName by remember { mutableStateOf("Loading...") }
-//    var email by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
-
-    // 🔹 Fetch details when user is logged in
     var email by remember { mutableStateOf(auth.currentUser?.email ?: "") }
+    var profileImageUrl by remember { mutableStateOf("") }
 
+    // Fetch user details
     LaunchedEffect(isLoggedIn) {
         val uid = auth.currentUser?.uid
         if (uid != null) {
@@ -43,7 +45,7 @@ fun AccountScreen(navController: NavController) {
                 if (snapshot.exists()) {
                     fullName = snapshot.getString("fullName") ?: "Unknown"
                     address = snapshot.getString("address") ?: ""
-                    // Don't fetch email from Firestore; use FirebaseAuth email
+                    profileImageUrl = snapshot.getString("profileImageUrl") ?: ""
                     email = auth.currentUser?.email ?: ""
                 }
             } catch (e: Exception) {
@@ -52,15 +54,14 @@ fun AccountScreen(navController: NavController) {
         }
     }
 
-
     Scaffold(
-            topBar = {
-                DefaultTopBar(
-                    title = "My Account",
-                    onBackClick = { navController.navigateUp() }
-                )
-            },
-            bottomBar = { BottomNavBar(navController, currentRoute = "account") }
+        topBar = {
+            DefaultTopBar(
+                title = "My Account",
+                onBackClick = { navController.navigateUp() }
+            )
+        },
+        bottomBar = { BottomNavBar(navController, currentRoute = "account") }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -70,48 +71,18 @@ fun AccountScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState())
         ) {
             if (isLoggedIn) {
-                // 🔹 Profile Section
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .background(Color(0xFFBBDEFB), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("👤", fontSize = 30.sp)
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(fullName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text(email, fontSize = 14.sp, color = Color.Gray)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Address: $address", fontSize = 14.sp, color = Color.DarkGray)
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { navController.navigate("edit_profile") }, // ✅ Navigate to edit profile
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5))
-                        ) {
-                            Text("View & Edit Profile", color = Color.White)
-                        }
-                    }
-                }
+                // Profile Section
+                ProfileCard(
+                    fullName = fullName,
+                    email = email,
+                    address = address,
+                    profileImageUrl = profileImageUrl,
+                    onEditProfileClick = { navController.navigate("edit_profile") }
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔹 Options List
+                // Options List
                 val options = listOf(
                     AccountOptionData("Buy Packages & My Orders") { navController.navigate("orders") },
                     AccountOptionData("Wishlist") { /* Navigate */ },
@@ -150,7 +121,7 @@ fun AccountScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 🔹 Logout Button
+                // Logout Button
                 Button(
                     onClick = {
                         auth.signOut()
@@ -165,7 +136,7 @@ fun AccountScreen(navController: NavController) {
                     Text("Logout", color = Color.White)
                 }
             } else {
-                // 🔹 If NOT logged in
+                // If NOT logged in
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,

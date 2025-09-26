@@ -65,9 +65,11 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                             deliveryDate = doc.getString("deliveryDate") ?: "",
                             location = doc.getString("location") ?: "",
                             sellerId = doc.getString("sellerId") ?: "",
-                            timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+                            timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
+                            imageUrl = doc.getString("imageUrl") ?: "" // <- Load image URL
                         )
                     }
+
                 }
             }
     }

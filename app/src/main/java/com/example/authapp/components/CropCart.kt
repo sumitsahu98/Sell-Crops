@@ -11,11 +11,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.authapp.models.CartViewModel
 import com.example.authapp.models.Crop
 import com.google.gson.Gson
@@ -32,7 +34,6 @@ fun CropCard(
             .fillMaxWidth()
             .padding(4.dp)
             .clickable {
-                // Convert crop to JSON and URL-encode
                 val cropJson = Uri.encode(Gson().toJson(crop))
                 navController.navigate("details/$cropJson")
             },
@@ -42,32 +43,49 @@ fun CropCard(
             modifier = Modifier
                 .background(Color(0xFFF9F9F9))
                 .padding(16.dp)
-                .heightIn(min = 220.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+            // Crop Image (90% width)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .height(100.dp)
+                    .align(Alignment.CenterHorizontally)
+                    .background(Color.LightGray, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = crop.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121),
-                    maxLines = 1
-                )
-                Icon(
-                    imageVector = Icons.Default.Image,
-                    contentDescription = "Crop Image",
-                    tint = Color.Gray,
-                    modifier = Modifier
-                        .size(54.dp)
-                        .padding(top = 20.dp)
-                )
+                if (!crop.imageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = crop.imageUrl,
+                        contentDescription = crop.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = "Crop Image",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(54.dp)
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Crop name below image
+            Text(
+                text = crop.name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF212121),
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            // Category badge
             if (crop.category.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -76,11 +94,12 @@ fun CropCard(
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .align(Alignment.CenterHorizontally)
                 ) {
                     Text(
                         text = crop.category,
                         fontSize = 12.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                        fontWeight = FontWeight.Medium,
                         color = Color(0xFF33691E)
                     )
                 }
@@ -92,8 +111,9 @@ fun CropCard(
             Text(
                 text = "₹ ${priceFor10Kg.toInt()}/10kg",
                 fontSize = 16.sp,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                color = Color(0xFF388E3C)
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF388E3C),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -101,7 +121,8 @@ fun CropCard(
             Text(
                 text = "${crop.quantity} kg available",
                 fontSize = 14.sp,
-                color = Color.Gray
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             Spacer(modifier = Modifier.height(12.dp))

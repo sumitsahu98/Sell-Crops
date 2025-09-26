@@ -5,11 +5,12 @@ data class Crop(
     val name: String = "",              // Crop name
     val price: String = "",             // Price per kg
     val quantity: String = "",          // Quantity in kg
-    val cartQuantity: String= "",
+    val cartQuantity: String = "",
     val category: String = "",          // Crop category
     val description: String = "",       // Optional description
     val deliveryDate: String = "",      // Expected delivery date
     val location: String = "",          // Crop location
     val sellerId: String = "",          // UID of the seller
+    val imageUrl: String? = null,       // Optional crop image URL
     val timestamp: Long = System.currentTimeMillis()  // Listing timestamp
 )
