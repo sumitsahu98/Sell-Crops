@@ -115,12 +115,17 @@ fun ListingDetailsScreen(navController: NavController, cropJson: String? = null)
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { Toast.makeText(context, "Contact Seller clicked!", Toast.LENGTH_SHORT).show() },
+                onClick = {
+                    navController.navigate("chat/${crop.sellerId}") // 👈 pass sellerId here
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
             ) {
                 Text("Contact Seller", color = Color.White)
             }
+
+
+
         }
     }
 }

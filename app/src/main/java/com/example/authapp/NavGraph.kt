@@ -1,5 +1,6 @@
 package com.example.authapp.navigation
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -11,7 +12,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.navArgument
 import com.example.authapp.Screens.*
 import com.example.authapp.models.CartViewModel
+import com.example.authapp.models.Crop
 import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
 
 @Composable
 fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
@@ -22,7 +25,7 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
 
     NavHost(navController = navController, startDestination = startDestination) {
 
-        // Login Screen
+        // ✅ Login Screen
         composable("login") {
             LoginScreen(
                 auth = auth,
@@ -43,31 +46,65 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
             )
         }
 
-        // Signup Screen
+        // ✅ Signup Screen
         composable("signup") {
             SignupScreen(
                 auth = auth,
                 showMessage = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
                 onNavigateToHome = { navController.navigate("home") },
                 onNavigateToLogin = { navController.navigate("login") },
-
-                )
+            )
         }
 
-        // Home Screen
+        // ✅ Home Screen
         composable("home") {
             HomeScreen(navController = navController, cartViewModel = cartViewModel)
         }
 
-        // Cart Screen
+        // ✅ Cart Screen
         composable("cart") {
             CartScreen(navController = navController, cartViewModel = cartViewModel)
         }
 
-        // Sell Crop Screen
+        // ✅ Sell Crop Screen
         composable("create") { SellCropScreen(navController) }
 
-        // Listing Details Screen with serialized crop JSON
+        // ✅ My Crops (Seller) Screen
+        composable("my_crops") {
+            SellerCropsScreen(
+                auth = auth,
+                navController = navController,
+                onEditCrop = { crop ->
+                    val cropJson = Uri.encode(Gson().toJson(crop))
+                    navController.navigate("edit_crop/$cropJson")
+                }
+            )
+        }
+
+        // ✅ Edit Crop Screen
+        composable(
+            route = "edit_crop/{cropJson}",
+            arguments = listOf(navArgument("cropJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val cropJson = backStackEntry.arguments?.getString("cropJson")
+            val crop: Crop? = try {
+                cropJson?.let { Gson().fromJson(it, Crop::class.java) }
+            } catch (e: Exception) {
+                null
+            }
+
+            if (crop != null) {
+                EditCropScreen(
+                    crop = crop,
+                    onBack = { navController.popBackStack() }
+                )
+            } else {
+                Toast.makeText(context, "Error loading crop", Toast.LENGTH_SHORT).show()
+                navController.popBackStack()
+            }
+        }
+
+        // ✅ Listing Details Screen
         composable(
             route = "details/{cropJson}",
             arguments = listOf(navArgument("cropJson") { type = NavType.StringType })
@@ -76,12 +113,30 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
             ListingDetailsScreen(navController = navController, cropJson = cropJson)
         }
 
-        // Chat, Account, Orders Screens
-        composable("chat") { ChatScreen(navController) }
+        // ✅ Chat List Screen
+        composable("chat_list") {
+            ChatListScreen(navController = navController)
+        }
+
+        // ✅ Individual Chat Screen
+        composable(
+            route = "chat/{sellerId}",
+            arguments = listOf(
+                navArgument("sellerId") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val sellerId = backStackEntry.arguments?.getString("sellerId")
+            ChatScreen(navController, sellerId)
+        }
+
+        // ✅ Account + Orders
         composable("account") { AccountScreen(navController) }
         composable("orders") { OrdersScreen(navController) }
 
-        // Edit Profile Screen
+        // ✅ Edit Profile Screen
         composable("edit_profile") {
             EditProfileScreenModern(
                 auth = auth,

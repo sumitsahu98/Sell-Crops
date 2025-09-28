@@ -1,172 +1,270 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.example.authapp.Screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-//import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.authapp.navbars.BottomNavBar
-import com.example.authapp.ui.components.DefaultTopBar
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 
-data class ChatMessage(val sender: String, val message: String, val time: String)
+data class Message(
+    val senderId: String = "",
+    val message: String = "",
+    val timestamp: Long = System.currentTimeMillis(),
+    val isRead: Boolean = false
+)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(navController: NavController) {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabTitles = listOf("All", "Buying", "Selling")
+fun ChatScreen(navController: NavController, sellerId: String?) {
+    val db = FirebaseFirestore.getInstance()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val currentUserId = currentUser?.uid ?: return
 
-    // Sample chat messages state
-    var messages by remember {
-        mutableStateOf(
-            listOf(
-                ChatMessage("buyer", "Hi, is this still available?", "10:15 AM"),
-                ChatMessage("seller", "Yes, I have 50kg left.", "10:16 AM")
-            )
-        )
+    val conversationId =
+        if (sellerId != null && currentUserId < sellerId) {
+            "${currentUserId}_${sellerId}"
+        } else {
+            "${sellerId}_${currentUserId}"
+        }
+
+    var messages by remember { mutableStateOf(listOf<Message>()) }
+    var inputText by remember { mutableStateOf("") }
+
+    var userName by remember { mutableStateOf("User") }
+    var profileImage by remember { mutableStateOf<String?>(null) }
+
+    // 🔹 Fetch other user info
+    LaunchedEffect(sellerId) {
+        if (sellerId != null) {
+            db.collection("users").document(sellerId)
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null && snapshot.exists()) {
+                        userName = snapshot.getString("name") ?: "User"
+                        profileImage = snapshot.getString("profileImage")
+                    }
+                }
+        }
     }
 
-    var typedMessage by remember { mutableStateOf("") }
+    // 🔹 Load messages in real time
+    LaunchedEffect(conversationId) {
+        db.collection("chats")
+            .document(conversationId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    val msgList = snapshot.toObjects(Message::class.java)
+                    messages = msgList
 
-    Scaffold(
-        topBar = {
-            DefaultTopBar(
-                title = "Chats",
-                onBackClick = { navController.navigateUp() }
-            )
-        },bottomBar = { BottomNavBar(navController, currentRoute = "chat") },
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Tabs
-            TabRow(selectedTabIndex = selectedTab) {
-                tabTitles.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = {
-                            Text(
-                                title,
-                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Chat messages
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val filteredMessages = when (selectedTab) {
-                    1 -> messages.filter { it.sender == "buyer" }
-                    2 -> messages.filter { it.sender == "seller" }
-                    else -> messages
-                }
-                items(filteredMessages) { msg ->
-                    val isSender = msg.sender == "seller"
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (isSender) Arrangement.End else Arrangement.Start
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .background(
-                                    color = if (isSender) Color(0xFF4CAF50) else Color(0xFFE0E0E0),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .padding(12.dp)
-                                .widthIn(max = 250.dp)
+                    // Mark unread messages as read
+                    snapshot.documents.forEach { doc ->
+                        val msg = doc.toObject(Message::class.java)
+                        if (msg != null &&
+                            msg.senderId != currentUserId &&
+                            msg.isRead.not()
                         ) {
-                            Text(
-                                text = msg.message,
-                                color = if (isSender) Color.White else Color.Black,
-                                fontSize = 14.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = msg.time,
-                                fontSize = 10.sp,
-                                color = if (isSender) Color.White.copy(alpha = 0.7f) else Color.Gray,
-                                modifier = Modifier.align(Alignment.End)
-                            )
+                            db.collection("chats")
+                                .document(conversationId)
+                                .collection("messages")
+                                .document(doc.id)
+                                .update("isRead", true)
                         }
                     }
                 }
             }
+    }
+// 🔹 Fetch other user info
+    LaunchedEffect(conversationId) {
+        val otherUserId = if (sellerId == currentUserId) null else sellerId
 
-            // Message input row
+        if (otherUserId != null) {
+            db.collection("users").document(otherUserId)
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null && snapshot.exists()) {
+                        userName = snapshot.getString("name") ?: "User"
+                        profileImage = snapshot.getString("profileImage")
+                    }
+                }
+        }
+    }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (profileImage != null) {
+                            Image(
+                                painter = rememberAsyncImagePainter(profileImage),
+                                contentDescription = "Profile",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.LightGray)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = userName.firstOrNull()?.toString() ?: "?",
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(userName, style = MaterialTheme.typography.titleMedium, color = Color.White)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF6A1B9A), // Purple
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                )
+            )
+
+        },
+        bottomBar = {
+            BottomNavBar(navController = navController, currentRoute = "chat")
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Messages list
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                items(messages) { msg ->
+                    val isMine = msg.senderId == currentUserId
+                    MessageBubble(msg = msg, isMine = isMine)
+                }
+            }
+
+            // Input box
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextField(
-                    value = typedMessage,
-                    onValueChange = { typedMessage = it },
-                    placeholder = { Text("Type a message...", fontSize = 14.sp, color = Color.Gray) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-//                    colors = TextFieldDefaults.textFieldColors(
-//                        containerColor = Color(0xFFF1F1F1),
-//                        textColor = Color.Black,
-//                        placeholderColor = Color.Gray,
-//                        cursorColor = MaterialTheme.colorScheme.primary
-//                    ),
-                    shape = RoundedCornerShape(30.dp),
-                    singleLine = true,
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { /* send action */ },
-                            enabled = typedMessage.isNotBlank()
-                        ) {
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Type a message...") },
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = {
+                    val text = inputText.trim()
+                    if (text.isNotEmpty()) {
+                        val newMsg = Message(
+                            senderId = currentUserId,
+                            message = text,
+                            timestamp = System.currentTimeMillis(),
+                            isRead = false
+                        )
+                        db.collection("chats")
+                            .document(conversationId)
+                            .collection("messages")
+                            .add(newMsg)
+
+                        inputText = ""
+                    }
+                }) {
+                    Text("Send")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageBubble(msg: Message, isMine: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp),
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
+    ) {
+        Surface(
+            color = if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Row(
+                modifier = Modifier.padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = msg.message,
+                    color = if (isMine) Color.White else Color.Black
+                )
+
+                if (isMine) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    // ✅ Show single or double ticks
+                    if (msg.isRead) {
+                        Row {
                             Icon(
-                                imageVector = Icons.Default.Send,
-                                contentDescription = "Send",
-                                tint = if (typedMessage.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "Read",
+                                tint = Color.Blue,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "Read",
+                                tint = Color.Blue,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    } else {
+                        Row {
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "Sent",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "Delivered",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        if (typedMessage.isNotBlank()) {
-                            messages = messages + ChatMessage(
-                                sender = "buyer",
-                                message = typedMessage,
-                                time = "Now"
-                            )
-                            typedMessage = ""
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("Send", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }

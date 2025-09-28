@@ -12,11 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.authapp.components.AddToCartButton
 import com.example.authapp.models.CartViewModel
 
@@ -74,46 +76,63 @@ fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
                                     .fillMaxSize()
                                     .padding(16.dp)
                             ) {
-                                // Crop Name Row with optional image placeholder
+                                // Row: Left = Name/Price/Qty, Right = Image
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        text = crop.name,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF212121),
-                                        maxLines = 1
-                                    )
+                                    // Left Column
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = crop.name,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF212121),
+                                            maxLines = 1
+                                        )
+
+                                        val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
+                                        Text(
+                                            text = "₹ ${priceFor10Kg.toInt()}/10kg",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF388E3C)
+                                        )
+
+                                        val available = (crop.quantity.toIntOrNull() ?: 0) - (crop.cartQuantity.toIntOrNull() ?: 0)
+                                        Text(
+                                            text = "$available kg available",
+                                            fontSize = 14.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    // Right Column: Crop Image
                                     Box(
                                         modifier = Modifier
-                                            .size(44.dp)
-                                            .background(Color.LightGray, RoundedCornerShape(8.dp))
-                                    )
+                                            .width(140.dp)        // increased width
+                                            .height(100.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color.LightGray),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (!crop.imageUrl.isNullOrEmpty()) {
+                                            AsyncImage(
+                                                model = crop.imageUrl,
+                                                contentDescription = crop.name,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        } else {
+                                            Text("No Image", fontSize = 12.sp, color = Color.Gray)
+                                        }
+                                    }
                                 }
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                // Price per 10 kg
-                                val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
-                                Text(
-                                    text = "₹ ${priceFor10Kg.toInt()}/10kg",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF388E3C)
-                                )
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                // Available quantity
-                                val available = (crop.quantity.toIntOrNull() ?: 0) - (crop.cartQuantity.toIntOrNull() ?: 0)
-                                Text(
-                                    text = "$available kg available",
-                                    fontSize = 14.sp,
-                                    color = Color.Gray
-                                )
 
                                 Spacer(modifier = Modifier.height(12.dp))
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
@@ -25,10 +26,11 @@ import androidx.navigation.NavController
 fun BottomNavBar(navController: NavController, currentRoute: String) {
     val items = listOf(
         BottomNavItem("home", "Home", Icons.Filled.Home),
-        BottomNavItem("chat", "Chats", Icons.Filled.Message),
-        BottomNavItem("orders", "Orders", Icons.Filled.ShoppingCart),
+        BottomNavItem("chat_list", "Chats", Icons.Filled.Message),
+        BottomNavItem("my_crops", "My Crops", Icons.Filled.LocalFlorist), // replaced Orders
         BottomNavItem("account", "Account", Icons.Filled.AccountCircle)
     )
+
 
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
