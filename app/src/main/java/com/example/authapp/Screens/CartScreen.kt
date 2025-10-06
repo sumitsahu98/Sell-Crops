@@ -1,6 +1,8 @@
 package com.example.authapp.Screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,13 +24,14 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.authapp.components.AddToCartButton
 import com.example.authapp.models.CartViewModel
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
+    val context = LocalContext.current
 
     val selectedItems = remember { mutableStateMapOf<String, Boolean>() }
 
+    // Initialize selected items to true
     cartViewModel.cartItems.forEach { crop ->
         if (selectedItems[crop.id] == null) selectedItems[crop.id] = true
     }
@@ -76,39 +80,47 @@ fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
                                     .fillMaxSize()
                                     .padding(16.dp)
                             ) {
-                                // Row: Left = Name/Price/Qty, Right = Image
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    // Left Column
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        modifier = Modifier.weight(1f)
+                                    // Left Column: Checkbox + Crop Info
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text(
-                                            text = crop.name,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF212121),
-                                            maxLines = 1
+                                        // Checkbox on the left
+                                        Checkbox(
+                                            checked = selectedItems[crop.id] == true,
+                                            onCheckedChange = { selectedItems[crop.id] = it }
                                         )
 
-                                        val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
-                                        Text(
-                                            text = "₹ ${priceFor10Kg.toInt()}/10kg",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFF388E3C)
-                                        )
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(
+                                                text = crop.name,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF212121),
+                                                maxLines = 1
+                                            )
 
-                                        val available = (crop.quantity.toIntOrNull() ?: 0) - (crop.cartQuantity.toIntOrNull() ?: 0)
-                                        Text(
-                                            text = "$available kg available",
-                                            fontSize = 14.sp,
-                                            color = Color.Gray
-                                        )
+                                            val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
+                                            Text(
+                                                text = "₹ ${priceFor10Kg.toInt()}/10kg",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF388E3C)
+                                            )
+
+                                            val available = (crop.quantity.toIntOrNull() ?: 0) - (crop.cartQuantity.toIntOrNull() ?: 0)
+                                            Text(
+                                                text = "$available kg available",
+                                                fontSize = 14.sp,
+                                                color = Color.Gray
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -116,7 +128,7 @@ fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
                                     // Right Column: Crop Image
                                     Box(
                                         modifier = Modifier
-                                            .width(140.dp)        // increased width
+                                            .width(140.dp)
                                             .height(100.dp)
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(Color.LightGray),
@@ -136,7 +148,6 @@ fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // Add to Cart Button
                                 AddToCartButton(
                                     crop = crop,
                                     cartViewModel = cartViewModel,
@@ -147,12 +158,13 @@ fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
                     }
                 }
 
-                // Subtotal & Checkout
-                val total = cartViewModel.cartItems.sumOf { crop ->
-                    val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
-                    val cartQty = crop.cartQuantity.toIntOrNull() ?: 0
-                    priceFor10Kg * cartQty / 10
-                }
+                // Subtotal & Proceed to Checkout
+                val total = cartViewModel.cartItems.filter { selectedItems[it.id] == true }
+                    .sumOf { crop ->
+                        val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
+                        val cartQty = crop.cartQuantity.toIntOrNull() ?: 0
+                        priceFor10Kg * cartQty / 10
+                    }
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -166,7 +178,15 @@ fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
                     )
 
                     Button(
-                        onClick = { /* Navigate to checkout with selected items */ },
+                        onClick = {
+                            val selectedCrops = cartViewModel.cartItems.filter { selectedItems[it.id] == true }
+                            if (selectedCrops.isEmpty()) {
+                                Toast.makeText(context, "Please select at least one item", Toast.LENGTH_SHORT).show()
+                            } else {
+                                cartViewModel.selectedForCheckout = selectedCrops
+                                navController.navigate("checkout")
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                     ) {

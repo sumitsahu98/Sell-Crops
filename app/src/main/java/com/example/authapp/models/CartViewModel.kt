@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 class CartViewModel : ViewModel() {
+    var selectedForCheckout: List<Crop> = emptyList()
 
     val cartItems = mutableStateListOf<Crop>()
     private val stepKg = 10
@@ -14,6 +15,13 @@ class CartViewModel : ViewModel() {
 
     init {
         loadCartFromFirestore()
+    }
+
+    // Extension to calculate total price of a crop
+    fun Crop.totalPrice(): Double {
+        val priceFor10Kg = price.toDoubleOrNull()?.times(10) ?: 0.0
+        val qty = cartQuantity.toIntOrNull() ?: 0
+        return priceFor10Kg * qty / 10
     }
 
     // Add to cart (increments cartQuantity by 10kg)

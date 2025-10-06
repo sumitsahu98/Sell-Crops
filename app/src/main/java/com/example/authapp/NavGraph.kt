@@ -117,6 +117,11 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
         composable("chat_list") {
             ChatListScreen(navController = navController)
         }
+        // ✅ Checkout Screen
+        composable("checkout") {
+            CheckoutScreen(navController = navController, cartViewModel = cartViewModel)
+        }
+
 
         // ✅ Individual Chat Screen
         composable(
