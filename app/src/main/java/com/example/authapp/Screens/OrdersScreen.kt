@@ -60,7 +60,8 @@ fun OrdersScreen(navController: NavController) {
                         status = doc.getString("status") ?: "Pending",
                         timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
                     )
-                } ?: emptyList()
+                }?.sortedByDescending { it.timestamp } // 🔹 Latest orders first
+                    ?: emptyList()
             }
     }
 
@@ -131,8 +132,8 @@ fun OrdersScreen(navController: NavController) {
 
                                         Column {
                                             Text(crop.name, fontWeight = FontWeight.Bold)
-                                            val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10)
-                                                ?: 0.0
+                                            val priceFor10Kg =
+                                                crop.price.toDoubleOrNull()?.times(10) ?: 0.0
                                             val cartQty = crop.cartQuantity.toIntOrNull() ?: 0
                                             Text(
                                                 "₹${(priceFor10Kg * cartQty / 10).toInt()} (${cartQty}kg)",

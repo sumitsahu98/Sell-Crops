@@ -125,7 +125,30 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
         composable("checkout") {
             CheckoutScreen(navController = navController, cartViewModel = cartViewModel)
         }
+// Payment Screen
+        composable(
+            route = "payment?subtotal={subtotal}&buyerName={buyerName}&buyerAddress={buyerAddress}&buyerPhone={buyerPhone}",
+            arguments = listOf(
+                navArgument("subtotal") { type = NavType.IntType },
+                navArgument("buyerName") { type = NavType.StringType },
+                navArgument("buyerAddress") { type = NavType.StringType },
+                navArgument("buyerPhone") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val subtotal = backStackEntry.arguments?.getInt("subtotal") ?: 0
+            val buyerName = backStackEntry.arguments?.getString("buyerName") ?: ""
+            val buyerAddress = backStackEntry.arguments?.getString("buyerAddress") ?: ""
+            val buyerPhone = backStackEntry.arguments?.getString("buyerPhone") ?: ""
 
+            PaymentScreen(
+                navController = navController,
+                cartViewModel = cartViewModel,
+                subtotal = subtotal,
+                buyerName = buyerName,
+                buyerAddress = buyerAddress,
+                buyerPhone = buyerPhone
+            )
+        }
 
         // ✅ Individual Chat Screen
         composable(

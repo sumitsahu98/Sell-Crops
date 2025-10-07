@@ -49,21 +49,36 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
     }
 
     // Fetch crops from Firestore
+    // Fetch crops from Firestore
     LaunchedEffect(Unit) {
         FirebaseFirestore.getInstance()
             .collection("crops")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     crops = snapshot.documents.mapNotNull { doc ->
-                        val quantityStr = doc.getString("quantity") ?: "0"
-                        val quantity = quantityStr.toIntOrNull() ?: 0
+                        // Safely parse quantity as Int
+                        val quantity: Int = when (val q = doc.get("quantity")) {
+                            is Long -> q.toInt()
+                            is Double -> q.toInt()
+                            is String -> q.toIntOrNull() ?: 0
+                            else -> 0
+                        }
+
                         if (quantity == 0) return@mapNotNull null // Skip crops with 0 quantity
+
+                        // Safely parse price as String
+                        val price: String = when (val p = doc.get("price")) {
+                            is String -> p
+                            is Long -> p.toString()
+                            is Double -> p.toString()
+                            else -> "0"
+                        }
 
                         Crop(
                             id = doc.id,
                             name = doc.getString("name") ?: "",
-                            price = doc.getString("price") ?: "",
-                            quantity = quantityStr,
+                            price = price,
+                            quantity = quantity.toString(), // keep as string if your model expects it
                             category = doc.getString("category") ?: "",
                             description = doc.getString("description") ?: "",
                             deliveryDate = doc.getString("deliveryDate") ?: "",
@@ -76,6 +91,7 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                 }
             }
     }
+
 
 
     val filteredCrops = if (debouncedSearchText.isBlank()) {

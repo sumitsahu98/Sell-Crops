@@ -71,15 +71,13 @@ object OrderRepository {
             selectedItems.forEach { crop ->
                 val cropRef = db.collection("crops").document(crop.id)
 
-                val availableQty = crop.quantity.toDoubleOrNull() ?: 0.0
-                val purchasedQty = crop.cartQuantity.toDoubleOrNull() ?: 0.0
-                val newQty = (availableQty - purchasedQty).coerceAtLeast(0.0)
+                // Convert quantities to Int instead of Double
+                val availableQty = crop.quantity.toIntOrNull() ?: 0
+                val purchasedQty = crop.cartQuantity.toIntOrNull() ?: 0
+                val newQty = (availableQty - purchasedQty).coerceAtLeast(0)
 
-                if (newQty > 0) {
-                    batch.update(cropRef, "quantity", newQty.toString())
-                } else {
-                    batch.delete(cropRef)
-                }
+                // Update or set to 0 instead of deleting (optional)
+                batch.update(cropRef, "quantity", newQty)
             }
 
             batch.commit()
@@ -90,6 +88,7 @@ object OrderRepository {
             onFailure(e.message ?: "Unexpected error while updating crops")
         }
     }
+
 
     // ✅ Function to auto-update order status after certain time
     fun startOrderStatusUpdater(orderId: String) {

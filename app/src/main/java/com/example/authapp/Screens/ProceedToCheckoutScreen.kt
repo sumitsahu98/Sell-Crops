@@ -1,14 +1,13 @@
 package com.example.authapp.Screens
 
 import LocationPermissionButton
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -19,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-//import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +25,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.authapp.models.CartViewModel
 import com.example.authapp.models.Crop
+import com.example.authapp.repository.OrderRepository
 import com.example.authapp.utils.getDetailedLocation
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,7 +37,7 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel) {
     var name by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var isFetchingLocation by remember { mutableStateOf(false) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     val subtotal = selectedItems.sumOf { crop ->
         val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
@@ -62,7 +61,6 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel) {
             )
         }
     ) { innerPadding ->
-        // Make the whole content scrollable
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -73,7 +71,6 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel) {
             // Cart Items
             Text("Your Items", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(8.dp))
-
             selectedItems.forEach { crop ->
                 CartItemRow(crop)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -93,7 +90,6 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel) {
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Address input + current location button
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = address,
@@ -133,14 +129,25 @@ fun CheckoutScreen(navController: NavController, cartViewModel: CartViewModel) {
 
                 Button(
                     onClick = {
-                        // TODO: handle order submission / payment
+                        // Encode all strings to safely pass via NavController
+                        val encodedName = Uri.encode(name)
+                        val encodedAddress = Uri.encode(address)
+                        val encodedPhone = Uri.encode(phone)
+
+                        navController.navigate(
+                            "payment?subtotal=${subtotal.toInt()}" +
+                                    "&buyerName=$encodedName" +
+                                    "&buyerAddress=$encodedAddress" +
+                                    "&buyerPhone=$encodedPhone"
+                        )
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                    enabled = name.isNotBlank() && address.isNotBlank() && phone.isNotBlank()
+                    enabled = name.isNotBlank() && address.isNotBlank() && phone.isNotBlank() && !isSubmitting
                 ) {
-                    Text("Pay Now", color = Color.White)
+                    Text(if (isSubmitting) "Processing..." else "Pay Now", color = Color.White)
                 }
+
             }
         }
     }
@@ -160,7 +167,6 @@ fun CartItemRow(crop: Crop) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Crop Image
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -180,7 +186,6 @@ fun CartItemRow(crop: Crop) {
                 }
             }
 
-            // Crop details
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.weight(0.6f)
