@@ -1,5 +1,6 @@
 package com.example.authapp.Screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,6 +31,7 @@ import kotlinx.coroutines.tasks.await
 fun AccountScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
+    val context = LocalContext.current
 
     var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
     var fullName by remember { mutableStateOf("Loading...") }
@@ -90,8 +93,12 @@ fun AccountScreen(navController: NavController) {
                     ),
                     AccountOptionData(
                         title = "Wishlist",
-                        onClick = { navController.navigate("wishlist") }
-                    ),
+                        onClick = {
+                            Toast.makeText(context, "Wishlist clicked!", Toast.LENGTH_SHORT).show()
+                            navController.navigate("wishlist")
+                        }
+                    )
+                    ,
                     AccountOptionData(
                         title = "Become an Elite Buyer",
                         isNew = true,

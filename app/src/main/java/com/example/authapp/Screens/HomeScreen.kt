@@ -54,12 +54,16 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
             .collection("crops")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    crops = snapshot.documents.map { doc ->
+                    crops = snapshot.documents.mapNotNull { doc ->
+                        val quantityStr = doc.getString("quantity") ?: "0"
+                        val quantity = quantityStr.toIntOrNull() ?: 0
+                        if (quantity == 0) return@mapNotNull null // Skip crops with 0 quantity
+
                         Crop(
                             id = doc.id,
                             name = doc.getString("name") ?: "",
                             price = doc.getString("price") ?: "",
-                            quantity = doc.getString("quantity") ?: "",
+                            quantity = quantityStr,
                             category = doc.getString("category") ?: "",
                             description = doc.getString("description") ?: "",
                             deliveryDate = doc.getString("deliveryDate") ?: "",
@@ -72,6 +76,7 @@ fun HomeScreen(navController: NavController, cartViewModel: CartViewModel) {
                 }
             }
     }
+
 
     val filteredCrops = if (debouncedSearchText.isBlank()) {
         crops
