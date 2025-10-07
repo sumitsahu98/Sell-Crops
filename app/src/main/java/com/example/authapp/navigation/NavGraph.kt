@@ -11,6 +11,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
 import androidx.navigation.navArgument
 import com.example.authapp.Screens.*
+import com.example.authapp.AccountScreens.EliteBuyerScreen
+import com.example.authapp.AccountScreens.HelpSupportScreen
+import com.example.authapp.AccountScreens.SettingsScreen
+import com.example.authapp.AccountScreens.WishlistScreen
 import com.example.authapp.models.CartViewModel
 import com.example.authapp.models.Crop
 import com.google.firebase.auth.FirebaseAuth
@@ -140,7 +144,25 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
         // ✅ Account + Orders
         composable("account") { AccountScreen(navController) }
         composable("orders") { OrdersScreen(navController) }
+        // Wishlist Screen
+        composable("wishlist") {
+            WishlistScreen(navController)
+        }
 
+        // Become an Elite Buyer
+        composable("elite") {
+            EliteBuyerScreen(navController)
+        }
+
+        // Settings
+        composable("settings") {
+            SettingsScreen(navController)
+        }
+
+        // Help & Support
+        composable("help") {
+            HelpSupportScreen(navController)
+        }
         // ✅ Edit Profile Screen
         composable("edit_profile") {
             EditProfileScreenModern(

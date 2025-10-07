@@ -15,8 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.authapp.models.CartViewModel
 import com.example.authapp.models.Crop
+
 @Composable
 fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier = Modifier) {
+    val maxUnits = ((crop.quantity.toIntOrNull() ?: 0) / 10)
     val units = remember {
         mutableStateOf(
             cartViewModel.cartItems.find { it.id == crop.id }?.cartQuantity?.toInt()?.div(10) ?: 0
@@ -26,9 +28,11 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
     if (units.value == 0) {
         Button(
             onClick = {
-                cartViewModel.addToCart(crop)
-                units.value = 1
-                cartViewModel.saveCartToFirestore()
+                if (maxUnits > 0) {
+                    cartViewModel.addToCart(crop)
+                    units.value = 1
+                    cartViewModel.saveCartToFirestore()
+                }
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF43A047),
@@ -48,6 +52,7 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
                 .width(110.dp)
                 .padding(horizontal = 4.dp)
         ) {
+            // Decrease button
             IconButton(
                 onClick = {
                     if (units.value > 1) {
@@ -64,6 +69,7 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
                 Icon(Icons.Default.Remove, contentDescription = "Decrease", tint = Color.White)
             }
 
+            // Quantity display
             Text(
                 units.value.toString(),
                 color = Color.White,
@@ -72,11 +78,14 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
 
+            // Increase button
             IconButton(
                 onClick = {
-                    units.value++
-                    cartViewModel.addToCart(crop)
-                    cartViewModel.saveCartToFirestore()
+                    if (units.value < maxUnits) { // ✅ Limit increase to available quantity
+                        units.value++
+                        cartViewModel.addToCart(crop)
+                        cartViewModel.saveCartToFirestore()
+                    }
                 },
                 modifier = Modifier.size(28.dp)
             ) {
@@ -85,4 +94,3 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
         }
     }
 }
-

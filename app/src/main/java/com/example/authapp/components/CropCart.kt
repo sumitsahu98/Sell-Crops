@@ -117,9 +117,9 @@ fun CropCard(
             )
 
             Spacer(modifier = Modifier.height(4.dp))
-
+            val avialable= (crop.quantity.toIntOrNull() ?: 0)
             Text(
-                text = "${crop.quantity} kg available",
+                text = "${avialable} kg available",
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.align(Alignment.CenterHorizontally)

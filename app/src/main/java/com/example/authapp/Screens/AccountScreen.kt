@@ -84,12 +84,29 @@ fun AccountScreen(navController: NavController) {
 
                 // Options List
                 val options = listOf(
-                    AccountOptionData("Buy Packages & My Orders") { navController.navigate("orders") },
-                    AccountOptionData("Wishlist") { /* Navigate */ },
-                    AccountOptionData("Become an Elite Buyer", isNew = true) { /* Navigate */ },
-                    AccountOptionData("Settings") { /* Navigate */ },
-                    AccountOptionData("Help & Support") { /* Navigate */ }
+                    AccountOptionData(
+                        title = "Buy Packages & My Orders",
+                        onClick = { navController.navigate("orders") }
+                    ),
+                    AccountOptionData(
+                        title = "Wishlist",
+                        onClick = { navController.navigate("wishlist") }
+                    ),
+                    AccountOptionData(
+                        title = "Become an Elite Buyer",
+                        isNew = true,
+                        onClick = { navController.navigate("elite") }
+                    ),
+                    AccountOptionData(
+                        title = "Settings",
+                        onClick = { navController.navigate("settings") }
+                    ),
+                    AccountOptionData(
+                        title = "Help & Support",
+                        onClick = { navController.navigate("help") }
+                    )
                 )
+
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     options.forEach { option ->
