@@ -51,11 +51,20 @@ fun SellerCropsScreen(
                 .whereEqualTo("sellerId", userId)
                 .addSnapshotListener { snapshot, _ ->
                     crops = snapshot?.documents?.map { doc ->
+                        // Safe function to get a number or string as string
+                        fun getStringValue(field: String): String {
+                            return when (val value = doc.get(field)) {
+                                is Number -> value.toString()
+                                is String -> value
+                                else -> "0"
+                            }
+                        }
+
                         Crop(
                             id = doc.id,
                             name = doc.getString("name") ?: "",
-                            price = doc.getString("price") ?: "",
-                            quantity = doc.getString("quantity") ?: "",
+                            price = getStringValue("price"),          // ✅ safe for numbers or strings
+                            quantity = getStringValue("quantity"),    // ✅ safe for numbers or strings
                             category = doc.getString("category") ?: "",
                             description = doc.getString("description") ?: "",
                             deliveryDate = doc.getString("deliveryDate") ?: "",

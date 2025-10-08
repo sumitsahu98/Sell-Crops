@@ -45,6 +45,7 @@ fun ChatScreen(navController: NavController, sellerId: String?) {
     val conversationId = if (currentUserId < sellerId) {
         "${currentUserId}_$sellerId"
     } else {
+
         "${sellerId}_$currentUserId"
     }
 
