@@ -24,7 +24,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import formatTimestamp
-import java.util.*
 
 data class ChatUser(
     val userId: String,
@@ -45,75 +44,63 @@ fun ChatListScreen(navController: NavController) {
     var chatUsers by remember { mutableStateOf(listOf<ChatUser>()) }
     var filter by remember { mutableStateOf("All") }
 
-    // 🔹 Fetch conversations with last message + unread count
-    LaunchedEffect(Unit) {
+    // 🔹 Real-time listener for chats
+    LaunchedEffect(currentUserId) {
         if (currentUserId != null) {
             db.collection("chats")
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    val userList = mutableSetOf<ChatUser>()
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot == null) return@addSnapshotListener
+                    val tempList = mutableListOf<ChatUser>()
 
-                    for (doc in snapshot.documents) {
-                        val conversationId = doc.id
-                        if (conversationId.contains(currentUserId)) {
-                            val parts = conversationId.split("_")
-                            val otherUserId =
-                                if (parts[0] == currentUserId) parts[1] else parts[0]
+                    snapshot.documents.forEach { chatDoc ->
+                        val participants = chatDoc.get("participants") as? Map<String, String> ?: return@forEach
+                        if (!participants.containsKey(currentUserId)) return@forEach
 
-                            // fetch last message + unread count
-                            db.collection("chats")
-                                .document(conversationId)
-                                .collection("messages")
-                                .orderBy("timestamp", Query.Direction.DESCENDING)
-                                .get()
-                                .addOnSuccessListener { msgSnapshot ->
-                                    val lastMsgDoc = msgSnapshot.documents.firstOrNull()
-                                    val lastMessage = lastMsgDoc?.getString("message")
-                                    val lastTimestamp = lastMsgDoc?.getLong("timestamp")
+                        val otherUserId = participants.keys.first { it != currentUserId }
+                        val otherUserRole = participants[otherUserId] ?: "Buyer" // ✅ Correct role
 
-                                    // count unread messages
-                                    val unreadCount = msgSnapshot.documents.count { message ->
-                                        val senderId = message.getString("senderId")
-                                        val isRead = message.getBoolean("isRead") ?: false
-                                        senderId != currentUserId && !isRead
-                                    }
+                        // Fetch messages for last message + unread count
+                        chatDoc.reference.collection("messages")
+                            .orderBy("timestamp", Query.Direction.DESCENDING)
+                            .get()
+                            .addOnSuccessListener { msgSnap ->
+                                if (msgSnap.isEmpty) return@addOnSuccessListener // Skip if no messages
 
-                                    // fetch user info
-                                    db.collection("users").document(otherUserId)
-                                        .get()
-                                        .addOnSuccessListener { userDoc ->
-                                            val name = userDoc.getString("name") ?: "User"
-                                            val role = userDoc.getString("role") ?: "Buyer"
-                                            val profileImage =
-                                                userDoc.getString("profileImageUrl")
+                                val lastDoc = msgSnap.documents.first()
+                                val lastMessage = lastDoc.getString("message")
+                                val lastTimestamp = lastDoc.getLong("timestamp")
 
-                                            userList.add(
-                                                ChatUser(
-                                                    userId = otherUserId,
-                                                    name = name,
-                                                    role = role,
-                                                    profileImageUrl = profileImage,
-                                                    lastMessage = lastMessage,
-                                                    lastTimestamp = lastTimestamp,
-                                                    unreadCount = unreadCount
-                                                )
-                                            )
-                                            chatUsers = userList.toList()
-                                        }
+                                val unreadCount = msgSnap.documents.count { msg ->
+                                    val senderId = msg.getString("senderId")
+                                    val isRead = msg.getBoolean("isRead") ?: false
+                                    senderId != currentUserId && !isRead
                                 }
-                        }
+
+                                // Fetch other user info
+                                db.collection("users").document(otherUserId)
+                                    .get()
+                                    .addOnSuccessListener { userDoc ->
+                                        tempList.add(
+                                            ChatUser(
+                                                userId = otherUserId,
+                                                name = userDoc.getString("name") ?: "User",
+                                                role = otherUserRole, // ✅ Correct role
+                                                profileImageUrl = userDoc.getString("profileImageUrl"),
+                                                lastMessage = lastMessage,
+                                                lastTimestamp = lastTimestamp,
+                                                unreadCount = unreadCount
+                                            )
+                                        )
+                                        chatUsers = tempList.sortedByDescending { it.lastTimestamp ?: 0L }
+                                    }
+                            }
                     }
                 }
         }
     }
 
     Scaffold(
-        topBar = {
-            DefaultTopBar(
-                title = "Chats",
-                onBackClick = { navController.popBackStack() }
-            )
-        },
+        topBar = { DefaultTopBar(title = "Chats", onBackClick = { navController.popBackStack() }) },
         bottomBar = { BottomNavBar(navController, currentRoute = "chatList") }
     ) { paddingValues ->
         if (currentUserId == null) {
@@ -182,7 +169,6 @@ fun ChatUserRow(chatUser: ChatUser, onClick: () -> Unit) {
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Profile image or initial
         if (chatUser.profileImageUrl != null) {
             Image(
                 painter = rememberAsyncImagePainter(chatUser.profileImageUrl),
@@ -233,7 +219,6 @@ fun ChatUserRow(chatUser: ChatUser, onClick: () -> Unit) {
             }
         }
 
-        // 🔹 Show unread count badge
         if (chatUser.unreadCount > 0) {
             Box(
                 modifier = Modifier
@@ -265,4 +250,3 @@ fun FilterButton(text: String, currentFilter: String, onClick: () -> Unit) {
         Text(text)
     }
 }
-

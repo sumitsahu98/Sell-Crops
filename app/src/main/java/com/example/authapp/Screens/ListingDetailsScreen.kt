@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.authapp.models.Crop
+import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,6 +27,8 @@ import com.google.gson.Gson
 fun ListingDetailsScreen(navController: NavController, cropJson: String? = null) {
 
     val context = LocalContext.current
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
     val crop = try {
         Gson().fromJson(cropJson, Crop::class.java)
     } catch (e: Exception) {
@@ -40,6 +43,9 @@ fun ListingDetailsScreen(navController: NavController, cropJson: String? = null)
 
     // Calculate price for 10 kg
     val priceFor10Kg = crop.price.toDoubleOrNull()?.times(10) ?: 0.0
+
+    // Check if the current user is the seller
+    val isSelf = currentUserId == crop.sellerId
 
     Scaffold(
         topBar = {
@@ -116,16 +122,27 @@ fun ListingDetailsScreen(navController: NavController, cropJson: String? = null)
 
             Button(
                 onClick = {
-                    navController.navigate("chat/${crop.sellerId}") // 👈 pass sellerId here
+                    if (isSelf) {
+                        Toast.makeText(
+                            context,
+                            "You cannot message yourself",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        navController.navigate("chat/${crop.sellerId}")
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelf) Color.Gray else Color(0xFF4CAF50)
+                ),
+                enabled = !isSelf
             ) {
-                Text("Contact Seller", color = Color.White)
+                Text(
+                    text = if (isSelf) "Cannot Contact Yourself" else "Contact Seller",
+                    color = Color.White
+                )
             }
-
-
-
         }
     }
 }
