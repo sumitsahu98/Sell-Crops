@@ -23,7 +23,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun SignupScreen(
     auth: FirebaseAuth,
     showMessage: (String) -> Unit,
-    onNavigateToHome: () -> Unit,
+    onNavigateToEmailVerification: (String) -> Unit,
     onNavigateToLogin: () -> Unit,
 ) {
     var fullName by remember { mutableStateOf("") }
@@ -31,7 +31,7 @@ fun SignupScreen(
     var address by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) } // ✅ Loading state
+    var isLoading by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -43,7 +43,7 @@ fun SignupScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 28.dp)
-                .verticalScroll(rememberScrollState()), // ✅ Make scrollable when keyboard appears
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -54,7 +54,6 @@ fun SignupScreen(
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = "Sign up to get started with us 🚀",
                 fontSize = 15.sp,
@@ -75,7 +74,7 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Phone Number
+            // Phone
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
@@ -129,71 +128,87 @@ fun SignupScreen(
                 onClick = {
                     if (fullName.isBlank() || phone.isBlank() || address.isBlank() || email.isBlank() || password.isBlank()) {
                         showMessage("Please fill all fields")
-                    } else {
-                        isLoading = true // ✅ Show loading
-                        auth.fetchSignInMethodsForEmail(email)
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    val signInMethods = task.result?.signInMethods ?: emptyList()
-                                    if (signInMethods.isNotEmpty()) {
-                                        isLoading = false
-                                        showMessage("This email is already registered. Please login.")
-                                    } else {
-                                        auth.createUserWithEmailAndPassword(email, password)
-                                            .addOnCompleteListener { signupTask ->
-                                                isLoading = false // ✅ Hide loading
-                                                if (signupTask.isSuccessful) {
-                                                    val userId = signupTask.result?.user?.uid
-                                                    if (userId != null) {
-                                                        val user = hashMapOf(
-                                                            "fullName" to fullName,
-                                                            "phone" to phone,
-                                                            "address" to address,
-                                                            "email" to email,
-                                                            "profileUrl" to null,
-                                                            "city" to null,
-                                                            "state" to null,
-                                                            "country" to null,
-                                                            "gender" to null,
-                                                            "dob" to null,
-                                                            "bio" to null,
-                                                            "website" to null,
-                                                            "socialLinks" to mapOf(
-                                                                "facebook" to null,
-                                                                "instagram" to null,
-                                                                "twitter" to null,
-                                                                "linkedin" to null
-                                                            ),
-                                                            "preferences" to mapOf(
-                                                                "newsletter" to false,
-                                                                "notifications" to true
-                                                            )
-                                                        )
+                        return@Button
+                    }
 
+                    isLoading = true
 
-                                                        FirebaseFirestore.getInstance()
-                                                            .collection("users")
-                                                            .document(userId)
-                                                            .set(user)
-                                                            .addOnSuccessListener {
-                                                                showMessage("Signup successful! 🎉")
-                                                                onNavigateToHome() // ✅ Redirect to login
-                                                            }
-                                                            .addOnFailureListener { e ->
-                                                                showMessage("Failed to save details: ${e.message}")
-                                                            }
-                                                    } else {
-                                                        showMessage("Signup successful, but userId is null")
-                                                    }
+                    // Check if email already exists
+                    auth.fetchSignInMethodsForEmail(email).addOnCompleteListener { task ->
+                        if (!task.isSuccessful) {
+                            isLoading = false
+                            showMessage("Error: ${task.exception?.message}")
+                            return@addOnCompleteListener
+                        }
+
+                        val methods = task.result?.signInMethods ?: emptyList()
+                        if (methods.isNotEmpty()) {
+                            isLoading = false
+                            showMessage("This email is already registered. Please login.")
+                            return@addOnCompleteListener
+                        }
+
+                        // Proceed to create account
+                        auth.createUserWithEmailAndPassword(email, password)
+                            .addOnCompleteListener { signupTask ->
+                                if (!signupTask.isSuccessful) {
+                                    isLoading = false
+                                    showMessage("Error: ${signupTask.exception?.message}")
+                                    return@addOnCompleteListener
+                                }
+
+                                val user = auth.currentUser
+                                val userId = user?.uid
+                                if (userId == null) {
+                                    isLoading = false
+                                    showMessage("Signup successful, but userId is null.")
+                                    return@addOnCompleteListener
+                                }
+
+                                val userMap = hashMapOf(
+                                    "fullName" to fullName,
+                                    "phone" to phone,
+                                    "address" to address,
+                                    "email" to email,
+                                    "profileUrl" to null,
+                                    "city" to null,
+                                    "state" to null,
+                                    "country" to null,
+                                    "gender" to null,
+                                    "dob" to null,
+                                    "bio" to null,
+                                    "website" to null,
+                                    "socialLinks" to mapOf(
+                                        "facebook" to null,
+                                        "instagram" to null,
+                                        "twitter" to null,
+                                        "linkedin" to null
+                                    ),
+                                    "preferences" to mapOf(
+                                        "newsletter" to false,
+                                        "notifications" to true
+                                    )
+                                )
+
+                                val db = FirebaseFirestore.getInstance()
+                                db.collection("users").document(userId)
+                                    .set(userMap)
+                                    .addOnSuccessListener {
+                                        user.sendEmailVerification()
+                                            .addOnCompleteListener { emailTask ->
+                                                isLoading = false
+                                                if (emailTask.isSuccessful) {
+                                                    showMessage("Verification email sent! 📧")
+                                                    onNavigateToEmailVerification(email)
                                                 } else {
-                                                    showMessage("Error: ${signupTask.exception?.message}")
+                                                    showMessage("Failed to send verification: ${emailTask.exception?.message}")
                                                 }
                                             }
                                     }
-                                } else {
-                                    isLoading = false
-                                    showMessage("Error: ${task.exception?.message}")
-                                }
+                                    .addOnFailureListener { e ->
+                                        isLoading = false
+                                        showMessage("Failed to save user info: ${e.message}")
+                                    }
                             }
                     }
                 },
@@ -201,9 +216,7 @@ fun SignupScreen(
                     .fillMaxWidth()
                     .height(55.dp),
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 contentPadding = PaddingValues()
             ) {
                 Box(
@@ -241,7 +254,7 @@ fun SignupScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0x88000000)), // semi-transparent overlay
+                    .background(Color(0x88000000)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = Color(0xFF4A90E2))

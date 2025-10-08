@@ -1,7 +1,9 @@
 package com.example.authapp.navigation
 
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -20,6 +22,7 @@ import com.example.authapp.models.Crop
 import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
     val context = LocalContext.current
@@ -55,12 +58,28 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
             SignupScreen(
                 auth = auth,
                 showMessage = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
-                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToEmailVerification = { email ->
+                    navController.navigate("email_verification/$email")
+                },
                 onNavigateToLogin = { navController.navigate("login") },
             )
         }
+        // ✅ Email Verification Screen
+        composable("email_verification/{email}") { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            EmailVerificationScreen(
+                email = email,
+                auth = auth,
+                showMessage = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
+                onVerified = {
+                    navController.navigate("home") {
+                        popUpTo("signup") { inclusive = true } // optional: prevent going back to signup
+                    }
+                }
+            )
+        }
 
-        // ✅ Home Screen
+//        ✅ Home Screen
         composable("home") {
             HomeScreen(navController = navController, cartViewModel = cartViewModel)
         }
