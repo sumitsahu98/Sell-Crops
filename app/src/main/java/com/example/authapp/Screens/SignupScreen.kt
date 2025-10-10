@@ -187,7 +187,8 @@ fun SignupScreen(
                                     "preferences" to mapOf(
                                         "newsletter" to false,
                                         "notifications" to true
-                                    )
+                                    ),
+                                    "verified" to false
                                 )
 
                                 val db = FirebaseFirestore.getInstance()

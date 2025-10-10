@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +38,7 @@ import kotlinx.coroutines.tasks.await
 fun EditProfileScreenModern(
     auth: FirebaseAuth,
     showMessage: (String) -> Unit,
+    onNavigateToEmailVerification: (String) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -56,6 +59,7 @@ fun EditProfileScreenModern(
     var bio by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
     var profileImageUrl by remember { mutableStateOf("") }
+    var verified by remember { mutableStateOf(false) } // ✅ Verified status
 
     var isLoading by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -94,7 +98,8 @@ fun EditProfileScreenModern(
                     "dob" to dob,
                     "bio" to bio,
                     "website" to website,
-                    "profileImageUrl" to finalImageUrl
+                    "profileImageUrl" to finalImageUrl,
+                    "verified" to verified // Save verified status
                 )
 
                 db.collection("users").document(uid).set(userData).await()
@@ -125,6 +130,7 @@ fun EditProfileScreenModern(
                     bio = snapshot.getString("bio") ?: ""
                     website = snapshot.getString("website") ?: ""
                     profileImageUrl = snapshot.getString("profileImageUrl") ?: ""
+                    verified = snapshot.getBoolean("verified") ?: false
                 }
             } catch (e: Exception) {
                 showMessage("Failed to load profile: ${e.message}")
@@ -148,7 +154,7 @@ fun EditProfileScreenModern(
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {  // Wrap content in Box
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -211,12 +217,54 @@ fun EditProfileScreenModern(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Account Info
+                // Name & Verified Status
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                ) {
+                    Text(email, fontSize = 12.sp)
+                    if (verified) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Verified,
+                            contentDescription = "Verified",
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "Verified",
+                            color = Color(0xFF4CAF50),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 2.dp)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                auth.currentUser?.sendEmailVerification()?.addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        showMessage("Verification email sent! 📧")
+                                        onNavigateToEmailVerification(auth.currentUser?.email ?: "")
+                                    } else {
+                                        showMessage("Failed to send verification: ${task.exception?.message}")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.height(33.dp).padding(0.dp)
+                        ) {
+                            Text("Verify Now", fontSize = 12.sp)
+                        }
+
+
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Account Info Fields
                 Text("Account Info", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(fullName, { fullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(email, {}, label = { Text("Email") }, enabled = false, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(phone, { phone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth())
 

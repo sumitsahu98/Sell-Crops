@@ -1,11 +1,11 @@
 package com.example.authapp.Screens
+//package com.example.authapp.Screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.authapp.components.ProfileCard
 import com.example.authapp.navbars.BottomNavBar
 import com.example.authapp.ui.components.DefaultTopBar
 import com.google.firebase.auth.FirebaseAuth
@@ -31,13 +30,13 @@ import kotlinx.coroutines.tasks.await
 fun AccountScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
-    val context = LocalContext.current
 
     var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
     var fullName by remember { mutableStateOf("Loading...") }
     var address by remember { mutableStateOf("") }
     var email by remember { mutableStateOf(auth.currentUser?.email ?: "") }
     var profileImageUrl by remember { mutableStateOf("") }
+    var verified by remember { mutableStateOf(false) }  // ✅ Verified status
 
     // Fetch user details
     LaunchedEffect(isLoggedIn) {
@@ -50,12 +49,15 @@ fun AccountScreen(navController: NavController) {
                     address = snapshot.getString("address") ?: ""
                     profileImageUrl = snapshot.getString("profileImageUrl") ?: ""
                     email = auth.currentUser?.email ?: ""
+                    verified = snapshot.getBoolean("verified") ?: false  // ✅ Fetch verified
                 }
             } catch (e: Exception) {
                 fullName = "Error: ${e.message}"
             }
         }
     }
+
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -74,18 +76,89 @@ fun AccountScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState())
         ) {
             if (isLoggedIn) {
-                // Profile Section
-                ProfileCard(
-                    fullName = fullName,
-                    email = email,
-                    address = address,
-                    profileImageUrl = profileImageUrl,
-                    onEditProfileClick = { navController.navigate("edit_profile") }
-                )
+                // =====================
+                // Profile Card
+                // =====================
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Profile Image
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = "Profile Image",
+                            modifier = Modifier
+                                .size(70.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.LightGray)
+                        )
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // Name, Email, Address
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = fullName,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (verified) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "✔ Verified",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF4CAF50),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = email,
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
+
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            Text(
+                                text = address,
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
+                        }
+
+                        // Edit Button
+                        Button(
+                            onClick = { navController.navigate("edit_profile") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text("Edit", color = Color.White)
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // =====================
                 // Options List
+                // =====================
                 val options = listOf(
                     AccountOptionData(
                         title = "Buy Packages & My Orders",
@@ -97,8 +170,7 @@ fun AccountScreen(navController: NavController) {
                             Toast.makeText(context, "Wishlist clicked!", Toast.LENGTH_SHORT).show()
                             navController.navigate("wishlist")
                         }
-                    )
-                    ,
+                    ),
                     AccountOptionData(
                         title = "Become an Elite Buyer",
                         isNew = true,
@@ -113,7 +185,6 @@ fun AccountScreen(navController: NavController) {
                         onClick = { navController.navigate("help") }
                     )
                 )
-
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     options.forEach { option ->
@@ -144,7 +215,6 @@ fun AccountScreen(navController: NavController) {
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-
                 // Logout Button
                 Button(
                     onClick = {

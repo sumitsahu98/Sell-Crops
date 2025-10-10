@@ -136,6 +136,13 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
             ListingDetailsScreen(navController = navController, cropJson = cropJson)
         }
 
+        //order screen crop detail
+
+        composable("cropdetails/{cropJson}") { backStackEntry ->
+            val cropJson = backStackEntry.arguments?.getString("cropJson")
+            CropDetailsScreen(navController, cropJson)
+        }
+
         // ✅ Chat List Screen
         composable("chat_list") {
             ChatListScreen(navController = navController)
@@ -206,12 +213,18 @@ fun AppNavGraph(navController: NavHostController, auth: FirebaseAuth) {
             HelpSupportScreen(navController)
         }
         // ✅ Edit Profile Screen
+        // ✅ Edit Profile Screen
         composable("edit_profile") {
             EditProfileScreenModern(
                 auth = auth,
                 showMessage = { msg -> Toast.makeText(context, msg, Toast.LENGTH_SHORT).show() },
+                onNavigateToEmailVerification = { email ->
+                    navController.navigate("email_verification/$email")
+                },
                 onBack = { navController.popBackStack() }
             )
         }
+
+
     }
 }

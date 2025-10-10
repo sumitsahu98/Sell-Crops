@@ -1,7 +1,9 @@
 package com.example.authapp.Screens
 
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +25,7 @@ import com.example.authapp.navbars.BottomNavBar
 import com.example.authapp.ui.components.DefaultTopBar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.gson.Gson
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,7 +52,11 @@ fun OrdersScreen(navController: NavController) {
                             price = item["price"] as? String ?: "",
                             cartQuantity = item["quantity"] as? String ?: "",
                             sellerId = item["sellerId"] as? String ?: "",
-                            imageUrl = item["imageUrl"] as? String ?: ""
+                            imageUrl = item["imageUrl"] as? String ?: "",
+                            category = item["category"] as? String ?: "",
+                            description = item["description"] as? String ?: "",
+                            location = item["location"] as? String ?: "",
+                            deliveryDate = item["deliveryDate"] as? String ?: ""
                         )
                     } ?: emptyList()
 
@@ -115,7 +122,13 @@ fun OrdersScreen(navController: NavController) {
                                 // Crop items list
                                 order.items.forEach { crop ->
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                val cropJson =
+                                                    Uri.encode(Gson().toJson(crop))
+                                                navController.navigate("cropdetails/$cropJson")
+                                            },
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Image(

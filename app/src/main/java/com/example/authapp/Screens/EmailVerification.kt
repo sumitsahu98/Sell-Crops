@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun EmailVerificationScreen(
@@ -23,6 +24,7 @@ fun EmailVerificationScreen(
     var verificationSent by remember { mutableStateOf(false) }
 
     val user = auth.currentUser
+    val db = FirebaseFirestore.getInstance()
 
     // Send verification email when screen is first shown
     LaunchedEffect(Unit) {
@@ -69,7 +71,19 @@ fun EmailVerificationScreen(
                         isLoading = false
                         if (user.isEmailVerified) {
                             showMessage("Email verified successfully! 🎉")
-                            onVerified()
+
+                            // ✅ Update verified field in Firestore
+                            val userId = user.uid
+                            db.collection("users").document(userId)
+                                .update("verified", true)
+                                .addOnSuccessListener {
+                                    showMessage("Account marked as verified ✅")
+                                    onVerified()
+                                }
+                                .addOnFailureListener { e ->
+                                    showMessage("Failed to update verification status: ${e.message}")
+                                }
+
                         } else {
                             showMessage("Email not verified yet. Please check your inbox.")
                         }
