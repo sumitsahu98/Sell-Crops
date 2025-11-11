@@ -1,4 +1,4 @@
-plugins {
+ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -87,6 +87,9 @@ dependencies {
 //Cloudinary Storage
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
     implementation("com.github.CanHub:Android-Image-Cropper:4.4.0")
+    implementation(libs.translate)
+    implementation(libs.language.id.common)
+    implementation(libs.androidx.foundation)
 
     // -------------------
     // Tests

@@ -1,6 +1,7 @@
 package com.example.authapp.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,9 +16,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.authapp.models.CartViewModel
 import com.example.authapp.models.Crop
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @Composable
 fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier = Modifier) {
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val isSeller = crop.sellerId == currentUserId   // ✅ Check if the logged-in user is the seller
+
     val maxUnits = ((crop.quantity.toIntOrNull() ?: 0) / 10)
     val units = remember {
         mutableStateOf(
@@ -25,6 +31,38 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
         )
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // ✅ If the seller is viewing their own crop
+    if (isSeller) {
+        Box(
+            modifier = modifier
+                .background(Color(0xFF9E9E9E), RoundedCornerShape(8.dp))
+                .height(36.dp)
+                .width(110.dp)
+                .clickable {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("You can’t buy your own crop!")
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Your Crop",
+                color = Color.White,
+                fontSize = 14.sp
+            )
+        }
+
+        // Snackbar display
+        Box(modifier = Modifier.fillMaxSize()) {
+            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        }
+        return
+    }
+
+    // ✅ If the user is a buyer
     if (units.value == 0) {
         Button(
             onClick = {
@@ -38,7 +76,9 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
                 containerColor = Color(0xFF43A047),
                 contentColor = Color.White
             ),
-            modifier = modifier.height(36.dp).width(80.dp)
+            modifier = modifier
+                .height(36.dp)
+                .width(80.dp)
         ) {
             Text("Add", fontSize = 14.sp)
         }
@@ -81,7 +121,7 @@ fun AddToCartButton(crop: Crop, cartViewModel: CartViewModel, modifier: Modifier
             // Increase button
             IconButton(
                 onClick = {
-                    if (units.value < maxUnits) { // ✅ Limit increase to available quantity
+                    if (units.value < maxUnits) {
                         units.value++
                         cartViewModel.addToCart(crop)
                         cartViewModel.saveCartToFirestore()

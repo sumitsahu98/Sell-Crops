@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit // ✅ added
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +26,7 @@ fun TopNavBar(
 ) {
     val context = LocalContext.current
     var locationText by remember { mutableStateOf("Fetching location...") }
+    var showAddressDialog by remember { mutableStateOf(false) } // ✅ new state
 
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -55,6 +57,39 @@ fun TopNavBar(
         }
     }
 
+    // ✅ Manual Address Dialog
+    if (showAddressDialog) {
+        var manualAddress by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showAddressDialog = false },
+            title = { Text("Enter Address") },
+            text = {
+                OutlinedTextField(
+                    value = manualAddress,
+                    onValueChange = { manualAddress = it },
+                    label = { Text("Your address") },
+                    singleLine = false
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (manualAddress.isNotBlank()) {
+                        locationText = manualAddress
+                        showAddressDialog = false
+                    }
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddressDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     // Top App Bar
     TopAppBar(
         title = {
@@ -73,6 +108,11 @@ fun TopNavBar(
             }
         },
         actions = {
+            // ✅ Added edit icon to manually set address
+            IconButton(onClick = { showAddressDialog = true }) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Address")
+            }
+
             IconButton(onClick = { onCartClick?.invoke() }) {
                 BadgedBox(
                     badge = {
